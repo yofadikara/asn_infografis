@@ -87,18 +87,10 @@ order by b.urutan""",
     "Jenis_Jabatan":
     f"""SELECT
     CASE
-	when
-		CASE
-			when p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-			WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-			ELSE 'PPPK Pelaksana'
-		END IN ('PPPK Dosen','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
-	else
-		CASE
-			when p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-			WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-			ELSE 'PPPK Pelaksana'
-		END
+	WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
+	WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
+	WHEN p.jenis_kelompok_jabatan in ('PPPK Dosen','PPPK Penyuluh Pertanian','PPPK Teknis') THEN 'PPPK Teknis'
+	ELSE 'PPPK Pelaksana'
     end jenisjabatannew, count(*)
     from {table_name} p
     left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
