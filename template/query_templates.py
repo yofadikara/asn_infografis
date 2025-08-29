@@ -5,7 +5,7 @@ from dataconfig.data import get_table_name
 def get_provinsi_list(conn):
     query = """SELECT cepat_kode, nama 
             FROM ref.instansi WHERE
-            nama ILIKE '%pekanbaru%'"""
+            nama ILIKE '%banten%'"""
     return pd.read_sql_query(query, conn).to_dict(orient='records')
 
 #Query Infografis
@@ -15,7 +15,7 @@ queries = {
     f"""SELECT p.jenis_asn, count(*) 
     from {table_name} p
     where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
+    --and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by p.jenis_asn
@@ -24,7 +24,7 @@ queries = {
     f"""select p.jenis_kelamin , count(*) 
     from {table_name} p
     where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
+    --and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by p.jenis_kelamin""",
@@ -72,7 +72,7 @@ order by b.urutan""",
     FROM {table_name} p 
     WHERE  
     p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
+    --and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     GROUP BY p.kelompok_masa_kerja)a
@@ -80,7 +80,7 @@ order by b.urutan""",
     "Kelompok_Usia":
     f"""select p.kelompok_usia  , count(*) from {table_name} p
     where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
+    --and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by p.kelompok_usia""",
@@ -88,14 +88,14 @@ order by b.urutan""",
     f"""SELECT
     CASE
 	WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
+    WHEN p.jenis_kelompok_jabatan in ('PPPK Dosen','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
 	WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-	WHEN p.jenis_kelompok_jabatan in ('PPPK Dosen','PPPK Penyuluh Pertanian','PPPK Teknis') THEN 'PPPK Teknis'
 	ELSE 'PPPK Pelaksana'
     end jenisjabatannew, count(*)
     from {table_name} p
     left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
     where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
+    --and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by jenisjabatannew"""

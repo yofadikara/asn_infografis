@@ -151,3 +151,67 @@ bulan_map_id = {
     5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
     9: "September", 10: "Oktober", 11: "November", 12: "Desember"
 }
+
+#posisi table dinamis
+TABLE_POSITIONS = {
+    "Masa_Kerja": {
+        "slide_index": 0,
+        "pos_x_cm": 1.15,
+        "pos_y_cm": 8.87,
+        "col_widths_cm": [2.0, 2.25],
+        "label_column": "kelompok_masa_kerja",
+        "value_column": "count",
+        "margin": {
+            "left": 0.02,
+            "right": 0.02,
+            "top": 0,
+            "bottom": 0
+        },
+        "fill_color": "BAF8FF"
+    },
+    "Kelompok_Usia": {
+        "slide_index": 0,
+        "pos_x_cm": 8.36,
+        "pos_y_cm": 8.87,
+        "col_widths_cm": [1.6, 2.0],
+        "label_column": "kelompok_usia",
+        "value_column": "count",
+        "margin": {
+            "left": 0.02,
+            "right": 0.02,
+            "top": 0,
+            "bottom": 0
+        },
+        "fill_color": "BAF8FF"
+    }
+}
+
+#mapping vis table
+VIS_TABLE_POSITIONS = {
+    "Masa_Kerja": {
+        "slide_index": 0,
+        "pos_x_cm": 5.53,
+        "pos_y_cm": 8.87,
+        "col_widths_cm": [0.81],
+        "value_column": "persentase_vis",
+        "margin": {
+            "left": 0.02,
+            "right": 0.02,
+            "top": 0,
+            "bottom": 0
+        }
+    },
+        "Kelompok_Usia": {
+        "slide_index": 0,
+        "pos_x_cm": 12.15,
+        "pos_y_cm": 8.87,
+        "col_widths_cm": [0.81],
+        "value_column": "persentase_vis",
+        "margin": {
+            "left": 0.02,
+            "right": 0.02,
+            "top": 0,
+            "bottom": 0
+        }
+    }
+}

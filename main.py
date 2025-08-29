@@ -1,7 +1,7 @@
 from dataconfig.data import get_all_data, get_table_name, tambah_persentase, klasifikasi_kelompok_jabatan, ringkasan_kelompok_jabatan
 from dataconfig.db_config import connect_db, load_env
 from automation.export_excel import export_per_provinsi
-from automation.export_ppt import TABLE_MAPPING, isi_dua_table_kategori, isi_infografis, generate_instansi_values, isi_balok_pendidikan
+from automation.export_ppt import isi_infografis, generate_instansi_values, isi_balok_pendidikan, generate_all_tables
 from pptx import Presentation
 import pandas as pd
 from dataconfig.mapping import mapping_placeholder_per_kategori, label_column_per_kategori, selid_kategori_shared
@@ -39,16 +39,18 @@ for prov, kategori_data in data_dict.items():
                 data_dict[prov][f"Ringkasan_{kategori}"] = df_ringkasan
             else:
                 data_dict[prov][kategori] = tambah_persentase(df)
+    #table dinamis
+    generate_all_tables(prs, data_dict[prov])
     #add ulang kategori            
     kategori_items = list(kategori_data.items())
     for kategori, df in kategori_items:
-        if kategori in TABLE_MAPPING:
+        '''if kategori in TABLE_MAPPING:
             slide_index = selid_kategori_shared.get(kategori)
             slide = prs.slides[slide_index]
             mapping_placeholder = mapping_placeholder_per_kategori[kategori]
             label_column = label_column_per_kategori.get(kategori, "label")
             data_export = data_dict[prov][kategori]
-            isi_dua_table_kategori(slide, data_export, mapping_placeholder, kategori, label_column=label_column)
+            isi_dua_table_kategori(slide, data_export, mapping_placeholder, kategori, label_column=label_column)'''
         if kategori == "Pendidikan":
             slide_index = selid_kategori_shared.get(kategori)
             slide = prs.slides[slide_index]

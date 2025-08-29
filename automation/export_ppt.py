@@ -4,7 +4,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 import pandas as pd
 from dataconfig.data import tambah_persentase, get_tanggal_data
-from dataconfig.mapping import mapping_diagram_cm, mapping_textbox_cm, TABLE_MAPPING
+from dataconfig.mapping import mapping_diagram_cm, mapping_textbox_cm, VIS_TABLE_POSITIONS, TABLE_POSITIONS
 
 #fungsi untuk mengganti teks pada shape dengan mempertahankan gaya
 def replace_text_reserving_style(shape, placeholder, replacement):
@@ -99,8 +99,142 @@ def isi_balok_pendidikan(df,slide):
             font1 = run1.font
             font1.size = Pt(11)
             font1.color.rgb = RGBColor(37,156,215)
+#pembuatan table dinamis
+def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
+                             pos_y_cm, col_widths_cm, margin, fill_color=None):
+     df_filtered = df[df[value_column] > 0].copy()
+     if df_filtered.empty:
+          print("Data kosong, tabel tidak dibuat.")
+          return
+     row_count = len(df_filtered)
+     col_count = 2
+     table_shape = slide.shapes.add_table(
+         row_count, col_count,
+         cm(pos_x_cm), cm(pos_y_cm),
+         cm(sum(col_widths_cm)), cm(0.8)
+     )
+     table = table_shape.table
+     table.first_row = False
+     #set margin
+     for row in table.rows:
+         for cell in row.cells:
+             cell.margin_top = cm(margin.get("top", 0.1))
+             cell.margin_bottom = cm(margin.get("bottom", 0.1))
+             cell.margin_left = cm(margin.get("left", 0.1))
+             cell.margin_right = cm(margin.get("right", 0.1))
+     #isi data
+     for i, (_, row) in enumerate(df_filtered.iterrows()):
+        #pewarnaan sesuai mapping
+        for j in range(col_count):
+            cell = table.cell(i, j)
+            if fill_color:
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = hex_to_rgb(fill_color)
+        #kategori
+        table.cell(i, 0).text = row[label_column]
+        table.cell(i,0).text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
+        for run in table.cell(i, 0).text_frame.paragraphs[0].runs:
+            font = run.font
+            font.size = Pt(10)
+        #value
+        table.cell(i, 1).text = f"{row[value_column]:,}".replace(",",".")
+        table.cell(i, 1).text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
+        for run in table.cell(i, 1).text_frame.paragraphs[0].runs:
+            font = run.font
+            font.size = Pt(10)
 
-def isi_table_count(slide, df, mapping_placeholder, label_column, table_name_count, font_size_count=10):
+#fungsi generate all table dinamis
+def generate_all_tables(prs, data_all):
+    for kategori, config in TABLE_POSITIONS.items():
+        if kategori not in data_all:
+            continue
+        df_kategori = data_all[kategori]
+        slide = prs.slides[config["slide_index"]]
+        label_column = config["label_column"]
+        value_column = config["value_column"]
+        pos_x_cm = config["pos_x_cm"]
+        pos_y_cm = config["pos_y_cm"]
+        col_widths_cm = config["col_widths_cm"]
+        margin = config["margin"]
+        fill_color = config.get("fill_color")
+        generate_table_from_data(
+            slide=slide,
+            df=df_kategori,
+            label_column=label_column,
+            value_column=value_column,
+            pos_x_cm=pos_x_cm,
+            pos_y_cm=pos_y_cm,
+            col_widths_cm=col_widths_cm, 
+            margin=margin,
+            fill_color=fill_color
+        )
+    for kategori, config in VIS_TABLE_POSITIONS.items():
+        if kategori not in data_all:
+            continue
+        df_vis = data_all[kategori]
+        slide = prs.slides[config["slide_index"]]
+        value_column = config["value_column"]
+        pos_x_cm = config["pos_x_cm"]
+        pos_y_cm = config["pos_y_cm"]
+        col_widths_cm = config["col_widths_cm"]
+        margin = config["margin"]
+        fill_color = config.get("fill_color")
+        generate_vis_table(
+            slide=slide,
+            df=df_vis,
+            value_column=value_column,
+            pox_x_cm=pos_x_cm,
+            pos_y_cm=pos_y_cm,
+            col_widths_cm=col_widths_cm[0],
+            margin=margin,
+            fill_color=fill_color
+        )
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return RGBColor(int(hex_color[0:2], 16), 
+                    int(hex_color[2:4], 16), 
+                    int(hex_color[4:6], 16))
+
+#fungsi table transparan persentase
+def generate_vis_table(slide, df, value_column, pox_x_cm,
+                       pos_y_cm, col_widths_cm, margin, fill_color=None):
+    df_filtered = df[df[value_column].str.rstrip('%').astype(float) > 0].copy()
+    if df_filtered.empty:
+        return
+    row_count = len(df_filtered)
+    table_shape = slide.shapes.add_table(
+        row_count, 1,
+        cm(pox_x_cm), cm(pos_y_cm),
+        cm(col_widths_cm), cm(0.8)
+    )
+    table = table_shape.table
+    #set margin
+    for row in table.rows:
+        for cell in row.cells:
+            cell.margin_top = cm(margin.get("top", 0.1))
+            cell.margin_bottom = cm(margin.get("bottom", 0.1))
+            cell.margin_left = cm(margin.get("left", 0.1))
+            cell.margin_right = cm(margin.get("right", 0.1))
+    for i, (_, row) in enumerate(df_filtered.iterrows()):
+        cell = table.cell(i, 0)
+        cell.text = row[value_column]
+        paragraph = cell.text_frame.paragraphs[0]
+        paragraph.alignment = PP_ALIGN.RIGHT
+        for run in paragraph.runs:
+            run.font.size = Pt(10)
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(31,78,121)
+        #set fill color
+        if fill_color:
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = hex_to_rgb(fill_color)
+        else:
+            cell.fill.background()
+
+
+
+'''def isi_table_count(slide, df, mapping_placeholder, label_column, table_name_count, font_size_count=10):
     #Merubah jadi List Mapping
     table_name = table_name_count if isinstance(table_name_count, list) else [table_name_count]
     expected_labels = set(mapping_placeholder.get("count", {}).keys())
@@ -175,7 +309,6 @@ def isi_table_persen(slide, df, mapping_placeholder, label_column, table_name_pe
                     font.bold = True
                 paragraph.alignment = PP_ALIGN.RIGHT
 
-
 def isi_dua_table_kategori(slide, df, mapping_placeholder, kategori, label_column):
     if kategori not in TABLE_MAPPING:
         raise ValueError(f"Kategori '{kategori}' belum ada di TABLE_MAPPING")
@@ -201,4 +334,6 @@ def isi_dua_table_kategori(slide, df, mapping_placeholder, kategori, label_colum
             table_name_persen=table_name_persen,
             font_size_persen=font_size
         )
+'''
+
 
