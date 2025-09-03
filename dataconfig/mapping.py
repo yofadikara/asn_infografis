@@ -114,21 +114,6 @@ mapping_textbox_cm = {
     "S3": {"x": 22.29, "y_offset": 1.3, "width": 1.2}
 }
 
-TABLE_MAPPING = {
-    "Masa_Kerja": {
-        "count": "table_1",
-        "persentase_vis": "table_2"
-    },
-    "Kelompok_Usia": {
-        "count": "table_3",
-        "persentase_vis": "table_4"
-    },
-    "Jenis_Jabatan": {
-        "count": ["table_5","table_6"],
-        "font_size" : 6
-    }
-}
-
 #Mapping Bulan
 bulan_map_id = {
     1: "Januari", 2: "Februari", 3: "Maret", 4: "April",

@@ -44,13 +44,6 @@ for prov, kategori_data in data_dict.items():
     #add ulang kategori            
     kategori_items = list(kategori_data.items())
     for kategori, df in kategori_items:
-        '''if kategori in TABLE_MAPPING:
-            slide_index = selid_kategori_shared.get(kategori)
-            slide = prs.slides[slide_index]
-            mapping_placeholder = mapping_placeholder_per_kategori[kategori]
-            label_column = label_column_per_kategori.get(kategori, "label")
-            data_export = data_dict[prov][kategori]
-            isi_dua_table_kategori(slide, data_export, mapping_placeholder, kategori, label_column=label_column)'''
         if kategori == "Pendidikan":
             slide_index = selid_kategori_shared.get(kategori)
             slide = prs.slides[slide_index]
@@ -69,7 +62,6 @@ for prov, kategori_data in data_dict.items():
             else:
                 print(f"Data Kosong untuk Provinsi: {prov}, Kategori: {kategori}")
         
-
     #Save PPT
     output_path = f"output/ppt/{prov}.pptx"
     prs.save(output_path)
