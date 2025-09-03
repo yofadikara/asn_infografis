@@ -32,7 +32,7 @@ for prov, kategori_data in data_dict.items():
                 ], ignore_index=True)
                 data_dict[prov][kategori] = df_final
             #penambahan ringkasan kelompok jabatan        
-            elif 'jenisjabatannew' in df.columns and 'count' in df.columns:
+            elif 'jenisjabatan' in df.columns and 'count' in df.columns:
                 df = klasifikasi_kelompok_jabatan(df)
                 #data_dict[prov][kategori] = tambah_persentase(df) 
                 df_ringkasan = ringkasan_kelompok_jabatan(df)

@@ -98,14 +98,14 @@ def get_all_data(conn, table_name):
     return data
 
 #Pembuatan Kelompok Jabatan
-def klasifikasi_kelompok_jabatan(df, kolom_sumber='jenisjabatannew'):
+def klasifikasi_kelompok_jabatan(df, kolom_sumber='jenisjabatan'):
     mapping = {
-        'Struktural': ['JPT Utama','JPT Madya','JPT Pratama','PPPK JPT Utama',
+        'Struktural': ['PSN JPT Utama','PNS JPT Madya','PNS JPT Pratama','PPPK JPT Utama',
                        'PPPK JPT Madya','PPPK JPT Pratama', 'Administrator',
                        'Pengawas','Eselon V'],
-        'Fungsional': ['JF Dosen','JF Guru','JF Medis','JF Kesehatan','JF Teknis',
-                       'PPPK Dosen','PPPK Guru','PPPK Kesehatan','PPPK Medis',
-                       'PPPK Teknis'],
+        'Fungsional': ['PNS JF Dosen','PNS JF Guru','PNS JF Medis','PNS JF Kesehatan','PNS JF Teknis',
+                       'PPPK JF Dosen','PPPK JF Guru','PPPK JF Medis','PPPK JF Medis',
+                       'PPPK JF Teknis'],
         'Pelaksana': ['Pelaksana','PPPK Pelaksana']
     }
     def klasifikasi(jenis):

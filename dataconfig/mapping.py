@@ -82,22 +82,6 @@ mapping_placeholder_per_kategori = {
             "Fungsional": "{persentase_vis_fungsional}",
             "Pelaksana": "{persentase_vis_pelaksana}"
         }
-    },
-    "Jenis_Jabatan": {
-        "count": {
-            "JPT Utama": "{count_utama}",
-            'JPT Madya': "{count_madya}",
-            'JPT Pratama': "{count_pratama}",
-            'Administrator': "{count_administrator}",
-            'Pengawas': "{count_pengawas}",
-            'Eselon V': "{count_eselon}",
-            "JF Guru": "{count_jf_guru}",
-            "JF Medis": "{count_jf_medis}",
-            "JF Teknis": "{count_jf_teknis}",
-            "PPPK Guru": "{count_pppk_guru}",
-            "PPPK Kesehatan": "{count_pppk_medis}",
-            "PPPK Teknis": "{count_pppk_teknis}"
-        }
     }
 }
 
@@ -183,6 +167,43 @@ TABLE_POSITIONS = {
             "bottom": 0
         },
         "fill_color": "BAF8FF"
+    },
+    "Jenis_Jabatan": {
+        "Struktural": {
+            "slide_index": 0,
+            "pos_x_cm": 13.97,
+            "pos_y_cm": 10,
+            "col_widths_cm": [2.26, 0.8],
+            "label_column": "jenisjabatan",
+            "value_column": "count",
+            "margin": {
+                "left": 0,
+                "right": 0.1,
+                "top": 0,
+                "bottom": 0
+            },
+            "fill_color": "FDEADA",
+            "label_order": ["PNS JPT Utama", "PNS JPT Madya", "PNS JPT Pratama", 
+                            "PPPK JPT Utama", "PPPK JPT Madya", "PPPK JPT Pratama",
+                            "Administrator", "Pengawas", "Eselon V"]
+        },
+        "Fungsional": {
+            "slide_index": 0,
+            "pos_x_cm": 17.74,
+            "pos_y_cm": 10,
+            "col_widths_cm": [2.26, 0.8],
+            "label_column": "jenisjabatan",
+            "value_column": "count",
+            "margin": {
+                "left": 0,
+                "right": 0.1,
+                "top": 0,
+                "bottom": 0
+            },
+            "fill_color": "F9BFD2",
+            "label_order": ["PNS JF Dosen", "PNS JF Guru", "PNS JF Medis", "PNS JF Teknis",
+                            "PPPK JF Dosen","PPPK JF Guru", "PPPK JF Medis", "PPPK JF Teknis"]
+        }
     }
 }
 

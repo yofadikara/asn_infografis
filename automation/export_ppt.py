@@ -99,9 +99,11 @@ def isi_balok_pendidikan(df,slide):
             font1 = run1.font
             font1.size = Pt(11)
             font1.color.rgb = RGBColor(37,156,215)
+            
 #pembuatan table dinamis
 def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
-                             pos_y_cm, col_widths_cm, margin, fill_color=None):
+                             pos_y_cm, col_widths_cm, margin, fill_color=None,
+                             font_size_override=None):
      df_filtered = df[df[value_column] > 0].copy()
      if df_filtered.empty:
           print("Data kosong, tabel tidak dibuat.")
@@ -114,6 +116,9 @@ def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
          cm(sum(col_widths_cm)), cm(0.8)
      )
      table = table_shape.table
+     #set lebar kolom
+     for idx, width in enumerate(col_widths_cm):
+         table.columns[idx].width = cm(width)
      table.first_row = False
      #set margin
      for row in table.rows:
@@ -124,10 +129,16 @@ def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
              cell.margin_right = cm(margin.get("right", 0.1))
      #isi data
      for i, (_, row) in enumerate(df_filtered.iterrows()):
+        label_text = row[label_column]
+        is_pppk = "PPPK" in label_text
         #pewarnaan sesuai mapping
         for j in range(col_count):
             cell = table.cell(i, j)
-            if fill_color:
+            #pewarnaan PPK
+            if is_pppk:
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = hex_to_rgb("D0E0E3")
+            elif fill_color:
                 cell.fill.solid()
                 cell.fill.fore_color.rgb = hex_to_rgb(fill_color)
         #kategori
@@ -135,39 +146,78 @@ def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
         table.cell(i,0).text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
         for run in table.cell(i, 0).text_frame.paragraphs[0].runs:
             font = run.font
-            font.size = Pt(10)
+            font.size = Pt(font_size_override) if font_size_override else Pt(10)
         #value
-        table.cell(i, 1).text = f"{row[value_column]:,}".replace(",",".")
+        value = int(row[value_column]) if pd.notnull(row[value_column]) else 0
+        table.cell(i, 1).text = f"{value:,}".replace(",",".")
         table.cell(i, 1).text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
         for run in table.cell(i, 1).text_frame.paragraphs[0].runs:
             font = run.font
-            font.size = Pt(10)
+            font.size = Pt(font_size_override) if font_size_override else Pt(10)
+
+#fungsi sort table
+def sort_table_by_mapping(df, label_column, value_column, label_order):
+    available_labels = df[label_column].unique().tolist()
+    filtered_order = [label for label in label_order if label in available_labels]
+    df_sorted = (
+        df[df[label_column].isin(filtered_order)]
+        .set_index(label_column)
+        .reindex(label_order)
+        .dropna(subset=[value_column])
+        .reset_index()
+    )
+    return df_sorted
 
 #fungsi generate all table dinamis
 def generate_all_tables(prs, data_all):
     for kategori, config in TABLE_POSITIONS.items():
         if kategori not in data_all:
             continue
-        df_kategori = data_all[kategori]
-        slide = prs.slides[config["slide_index"]]
-        label_column = config["label_column"]
-        value_column = config["value_column"]
-        pos_x_cm = config["pos_x_cm"]
-        pos_y_cm = config["pos_y_cm"]
-        col_widths_cm = config["col_widths_cm"]
-        margin = config["margin"]
-        fill_color = config.get("fill_color")
-        generate_table_from_data(
-            slide=slide,
-            df=df_kategori,
-            label_column=label_column,
-            value_column=value_column,
-            pos_x_cm=pos_x_cm,
-            pos_y_cm=pos_y_cm,
-            col_widths_cm=col_widths_cm, 
-            margin=margin,
-            fill_color=fill_color
-        )
+        if kategori == "Jenis_Jabatan":
+            df_jabatan = data_all.get(kategori)
+            if df_jabatan is None or "kelompok_jabatan" not in df_jabatan.columns:
+                continue
+            for kelompok, sub_config in config.items():
+                df_sub_raw = df_jabatan[df_jabatan["kelompok_jabatan"] == kelompok]
+                #sort sesuai mapping
+                label_order = sub_config.get("label_order")
+                df_sub = sort_table_by_mapping(
+                    df_sub_raw,
+                    label_column=sub_config["label_column"],
+                    value_column=sub_config["value_column"],
+                    label_order=label_order
+                ) if label_order else df_sub_raw
+                if df_sub.empty:
+                    continue
+                slide = prs.slides[sub_config["slide_index"]]
+                font_size = 6
+                generate_table_from_data(
+                    slide=slide,
+                    df=df_sub,
+                    label_column=sub_config["label_column"],
+                    value_column=sub_config["value_column"],
+                    pos_x_cm=sub_config["pos_x_cm"],
+                    pos_y_cm=sub_config["pos_y_cm"],
+                    col_widths_cm=sub_config["col_widths_cm"],
+                    margin=sub_config["margin"],
+                    fill_color=sub_config.get("fill_color"),
+                    font_size_override=font_size
+                )
+        else:
+            df_kategori = data_all[kategori]
+            font_size = None
+            generate_table_from_data(
+                slide=prs.slides[config["slide_index"]],
+                df=df_kategori,
+                label_column=config["label_column"],
+                value_column=config["value_column"],
+                pos_x_cm=config["pos_x_cm"],
+                pos_y_cm=config["pos_y_cm"],
+                col_widths_cm=config["col_widths_cm"], 
+                margin=config["margin"],
+                fill_color=config.get("fill_color"),
+                font_size_override=font_size
+            )
     for kategori, config in VIS_TABLE_POSITIONS.items():
         if kategori not in data_all:
             continue

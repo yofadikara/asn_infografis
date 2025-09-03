@@ -5,7 +5,7 @@ from dataconfig.data import get_table_name
 def get_provinsi_list(conn):
     query = """SELECT cepat_kode, nama 
             FROM ref.instansi WHERE
-            nama ILIKE '%banten%'"""
+            nama ILIKE '%sumatera selatan%'"""
     return pd.read_sql_query(query, conn).to_dict(orient='records')
 
 #Query Infografis
@@ -43,7 +43,7 @@ queries = {
     from (
     select 
         case 
-	    when p.tkpendidikan in ('Diploma I','Diploma II') or p.tkpendidikan ilike '%Diploma%II%' then 'DI-DIII'
+	    when p.tkpendidikan in ('Diploma I','Diploma II') or p.tkpendidikan ilike '%Diploma III%' then 'DI-DIII'
 	    when p.tkpendidikan ilike '%diploma%IV%' or p.tkpendidikan ilike '%S-1%' or p.tkpendidikan = 'Profesi' then 'DIV/S1'
 	    when p.tkpendidikan ilike '%s%2%' or p.tkpendidikan = 'Spesialis' then 'S2'
 	    when p.tkpendidikan ilike '%s%3%' or p.tkpendidikan = 'Subspesialis' then 'S3'
@@ -86,9 +86,40 @@ order by b.urutan""",
     group by p.kelompok_usia""",
     "Jenis_Jabatan":
     f"""SELECT
+  CASE
+    a.jenisjabatannew
+    WHEN 'JPT Utama' THEN
+      'PNS JPT Utama'
+    WHEN 'JPT Madya' THEN
+      'PNS JPT Madya'
+    WHEN 'JPT Pratama' THEN
+      'PNS JPT Pratama'
+    WHEN 'JF Dosen' THEN
+      'PNS JF Dosen'
+    WHEN 'JF Guru' THEN
+      'PNS JF Guru'
+    WHEN 'JF Medis' THEN
+      'PNS JF Medis'
+    WHEN 'JF Teknis' THEN
+      'PNS JF Teknis'
+    WHEN 'PPPK Dosen' THEN
+      'PPPK JF Dosen'
+    WHEN 'PPPK Guru' THEN
+      'PPPK JF Guru'
+    WHEN 'PPPK Kesehatan' THEN
+      'PPPK JF Medis'
+    WHEN 'PPPK Teknis' THEN
+      'PPPK JF Teknis'
+    ELSE
+      a.jenisjabatannew
+  END AS jenisjabatan,
+  count
+FROM
+(
+    SELECT
     CASE
 	WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-    WHEN p.jenis_kelompok_jabatan in ('PPPK Dosen','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
+    WHEN p.jenis_kelompok_jabatan in ('PPPK Tendik','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
 	WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
 	ELSE 'PPPK Pelaksana'
     end jenisjabatannew, count(*)
@@ -98,5 +129,6 @@ order by b.urutan""",
     --and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
-    group by jenisjabatannew"""
+    group by jenisjabatannew
+    )a"""
 }
