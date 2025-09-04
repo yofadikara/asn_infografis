@@ -5,7 +5,12 @@ from automation.export_ppt import isi_infografis, generate_instansi_values, isi_
 from pptx import Presentation
 import pandas as pd
 from dataconfig.mapping import mapping_placeholder_per_kategori, label_column_per_kategori, selid_kategori_shared
-
+from io import BytesIO
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+import os
 
 #Tarik Data
 params = load_env()
@@ -63,10 +68,36 @@ for prov, kategori_data in data_dict.items():
                 print(f"Data Kosong untuk Provinsi: {prov}, Kategori: {kategori}")
         
     #Save PPT
-    output_path = f"output/ppt/{prov}.pptx"
+    '''output_path = f"output/ppt/{prov}.pptx"
     prs.save(output_path)
-    print(f"PowerPoint Disimpan: {output_path}")
+    print(f"PowerPoint Disimpan: {output_path}")'''
     
+    #Upload Drive
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
+    TOKEN_FILE = 'token.json'
+    CREDENTIALS_FILE = 'credentials.json'
+    if os.path.exists(TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+        creds = flow.run_local_server(port=0)
+        with open(TOKEN_FILE, 'w') as token:
+            token.write(creds.to_json())
+    drive_service = build('drive', 'v3', credentials=creds)
+    #save to bytes sementara
+    ppt_stream = BytesIO()
+    prs.save(ppt_stream)
+    ppt_stream.seek(0)
+    #Upload
+    file_metadata = {
+        'name': f'{prov}.pptx',
+        'parents': ['1OhAKH94lYQwZVAarrz1nlWW86X3aBKJv']
+    }
+    media = MediaIoBaseUpload(ppt_stream, mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                              resumable=True)
+    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    print(f"File {prov}.pptx diunggah ke Google Drive dengan ID: {file.get('id')}")
+
     #Export ke Excel
     '''if data_dict and any(data_dict.values()):
         export_per_provinsi(data_dict)

@@ -5,7 +5,7 @@ from dataconfig.data import get_table_name
 def get_provinsi_list(conn):
     query = """SELECT cepat_kode, nama 
             FROM ref.instansi WHERE
-            nama ILIKE '%sumatera selatan%'"""
+            nama ILIKE '%provinsi%sumatera%'"""
     return pd.read_sql_query(query, conn).to_dict(orient='records')
 
 #Query Infografis
