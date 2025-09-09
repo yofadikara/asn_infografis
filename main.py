@@ -10,12 +10,26 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+from template.query_templates import get_provinsi_list
 import os
+from automation.filter import get_instansi_filter, resolve_filter
 
 #Tarik Data
 params = load_env()
 conn = connect_db(params)
-data_dict = get_all_data(conn, get_table_name())
+args = get_instansi_filter()
+#untuk mengambil prefix wilker
+filter_value = resolve_filter(args, conn)
+#kondisi mode instansi atau wilker
+if args.instansi:
+    mode = 'instansi'
+    target_list = get_provinsi_list(conn, filter_value)
+elif args.wilker:
+    mode = 'wilker'
+    target_list = filter_value
+else:
+    raise ValueError("Mode harus 'instansi' atau 'wilker'")
+data_dict = get_all_data(conn, get_table_name(), target_list, mode=mode)
 for prov, kategori_data in data_dict.items():
     prs = Presentation('template/template_infografis.pptx')
     print(f"Data untuk Provinsi: {prov}")
@@ -62,18 +76,18 @@ for prov, kategori_data in data_dict.items():
             mapping_instansi = generate_instansi_values(prov)
             data_export = data_dict[prov][kategori]
             if data_export is not None:
-                print(f"Memproses isi_infografis untuk kategori: {kategori}")
+                '''print(f"Memproses isi_infografis untuk kategori: {kategori}")'''
                 isi_infografis(prs, data_export, mapping_placeholder, mapping_instansi, label_column= label_column)
             else:
                 print(f"Data Kosong untuk Provinsi: {prov}, Kategori: {kategori}")
         
     #Save PPT
-    '''output_path = f"output/ppt/{prov}.pptx"
+    output_path = f"output/ppt/{prov}.pptx"
     prs.save(output_path)
-    print(f"PowerPoint Disimpan: {output_path}")'''
+    print(f"PowerPoint Disimpan: {output_path}")
     
     #Upload Drive
-    SCOPES = ['https://www.googleapis.com/auth/drive.file']
+    '''SCOPES = ['https://www.googleapis.com/auth/drive.file']
     TOKEN_FILE = 'token.json'
     CREDENTIALS_FILE = 'credentials.json'
     if os.path.exists(TOKEN_FILE):
@@ -97,9 +111,9 @@ for prov, kategori_data in data_dict.items():
                               resumable=True)
     file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     print(f"File {prov}.pptx diunggah ke Google Drive dengan ID: {file.get('id')}")
-
-    #Export ke Excel
-    '''if data_dict and any(data_dict.values()):
+'''
+    '''#Export ke Excel
+    if data_dict and any(data_dict.values()):
         export_per_provinsi(data_dict)
     else:
         print("Tidak ada data yang tersedia untuk diekspor.")'''

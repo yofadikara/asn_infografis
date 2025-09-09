@@ -43,9 +43,14 @@ def get_tanggal_data():
     return f"1 {bulan} {today.year}"
 
 #Ambil Data Berdasarkan Cepat Kode dan Kategori
-def get_data(conn, cepat_kode, kategori, table_name):
-    from template.query_templates import queries
-    query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+def get_data(conn, cepat_kode, kategori, table_name, mode):
+    from template.query_templates import queries, queries_wilker
+    if mode == 'instansi':
+        query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+    elif mode == 'wilker':
+        query = queries_wilker[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+    else:
+        raise ValueError("Mode harus 'instansi' atau 'wilker'")
     return pd.read_sql_query(query, conn)
 
 #Penambahan Persentase
@@ -56,7 +61,7 @@ def tambah_persentase(df, kolom_jumlah = 'count'):
     if total == 0:
         df['persentase_raw'] = 0
     else:
-        df['persentase_raw'] = (df[kolom_jumlah] / total * 100).round(2)
+        df['persentase_raw'] = (df[kolom_jumlah] / total * 100).round(5)
     df['persentase_vis'] = df['persentase_raw'].apply(lambda x: min_visual if x < min_visual and x > base_visual else int(round(x))
                                                       if pd.notnull(x) else 0)
     excess = df['persentase_vis'].sum() - 100
@@ -83,24 +88,36 @@ def tambah_persentase(df, kolom_jumlah = 'count'):
     return df
 
 #Pengambilan All Data
-def get_all_data(conn, table_name):
+def get_all_data(conn, table_name, target_list, mode):
     data = {}
     kategori_list = ["Jenis_ASN","Jenis_Kelamin", "Pendidikan",
                      "Masa_Kerja", "Kelompok_Usia", "Jenis_Jabatan"]
-    from template.query_templates import get_provinsi_list
-    provinsi_list = get_provinsi_list(conn)
+    for target in target_list:
+        if mode == 'instansi':
+            nama = target['nama']
+            cepat_kode = target['cepat_kode']
+        elif mode == 'wilker':
+            wilayah = target['wilayah']
+            cepat_kode = target['prefix']
+            nama = f"Wilayah Kerja {wilayah.title()}"
+        else:
+            raise ValueError("Mode harus 'instansi' atau 'wilker'")
+        data[nama] = {}
+        for kategori in kategori_list:
+            data[nama][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)
+    return data
+    '''from template.query_templates import get_provinsi_list
+    instansi_filter = get_instansi_filter()
+    provinsi_list = get_provinsi_list(conn, instansi_filter)
     for prov in provinsi_list:
         nama = prov['nama']
         cepat_kode = prov['cepat_kode']
-        data[nama] = {}
-        for kategori in kategori_list:
-            data[nama][kategori] = get_data(conn, cepat_kode, kategori, table_name)
-    return data
+        data[nama] = {}''' 
 
 #Pembuatan Kelompok Jabatan
 def klasifikasi_kelompok_jabatan(df, kolom_sumber='jenisjabatan'):
     mapping = {
-        'Struktural': ['PSN JPT Utama','PNS JPT Madya','PNS JPT Pratama','PPPK JPT Utama',
+        'Struktural': ['PNS JPT Utama','PNS JPT Madya','PNS JPT Pratama','PPPK JPT Utama',
                        'PPPK JPT Madya','PPPK JPT Pratama', 'Administrator',
                        'Pengawas','Eselon V'],
         'Fungsional': ['PNS JF Dosen','PNS JF Guru','PNS JF Medis','PNS JF Kesehatan','PNS JF Teknis',
@@ -123,3 +140,4 @@ def ringkasan_kelompok_jabatan(df):
     total_per_kelompok.columns = ['kelompok_jabatan', 'count']
     total_per_kelompok = tambah_persentase(total_per_kelompok, kolom_jumlah='count')
     return total_per_kelompok
+                

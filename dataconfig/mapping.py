@@ -176,7 +176,7 @@ TABLE_POSITIONS = {
             "slide_index": 0,
             "pos_x_cm": 17.74,
             "pos_y_cm": 10,
-            "col_widths_cm": [2.26, 0.8],
+            "col_widths_cm": [2.16, 0.9],
             "label_column": "jenisjabatan",
             "value_column": "count",
             "margin": {

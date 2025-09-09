@@ -1,0 +1,17 @@
+untuk versi code ini, bisa per instansi atau per wilker, instansi ini bisa pemkot/pemprov/pemkab/instansi pusat, wilker hanya untuk wilayah per prov
+
+untuk run silahkan klik kanan di folder ini > open in terminal > lalu ketik ini
+
+untuk per instansi
+python main.py --instansi (nama instansi yang ingin digenerate) 
+
+contoh :
+
+python main.py --instansi "badan kepegawaian negara"
+
+untuk per wilker
+python main.py --wilker (nama wilayah)
+
+contoh : 
+
+python main.py --wilker "jawa barat"
