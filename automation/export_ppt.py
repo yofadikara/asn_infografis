@@ -29,11 +29,14 @@ def generate_instansi_values(prov):
 #fungsi untuk mengisi slide dengan data jenis ASN
 def isi_infografis(prs, df_kategori, mapping_placeholder, mapping_instansi, label_column='label'):
     slide = prs.slides[0]
+    #untuk penjagaan placeholder kosong
+    used_placeholders = set()
     for shape in slide.shapes:
         if not shape.has_text_frame:
             continue
         for placeholder, replacement in mapping_instansi.items():
              replace_text_reserving_style(shape, placeholder, replacement)
+             used_placeholders.add(placeholder)
         text = shape.text
         for idx, row in df_kategori.iterrows():
             label = row.get(label_column)
@@ -43,8 +46,21 @@ def isi_infografis(prs, df_kategori, mapping_placeholder, mapping_instansi, labe
                     nilai = row.get(kolom_data)
                     nilai_str = f"{nilai:,}".replace(",",".") if isinstance(nilai, (int)) else str(nilai)
                     replace_text_reserving_style(shape, placeholder, nilai_str)
-                    #if placeholder in text:
-                        #shape.text = text.replace(placeholder, nilai_str)
+                    used_placeholders.add(placeholder)
+    #penjagaan placeholder yang tidak terpakai
+    all_placeholders = set(mapping_instansi.keys())
+    for map_label in mapping_placeholder.values():
+        all_placeholders.update(map_label.values())
+    unused_placeholders = all_placeholders - used_placeholders
+    for shape in slide.shapes:
+        if not shape.has_text_frame:
+            continue
+        for placeholder in unused_placeholders:
+            if "persentase" in placeholder.lower() or "percent" in placeholder.lower():
+                default_value = "0%"
+            else:
+                default_value = "0"
+            replace_text_reserving_style(shape, placeholder, default_value)
 
 #konversi cm ke inches
 def cm(val):

@@ -44,11 +44,13 @@ def get_tanggal_data():
 
 #Ambil Data Berdasarkan Cepat Kode dan Kategori
 def get_data(conn, cepat_kode, kategori, table_name, mode):
-    from template.query_templates import queries, queries_wilker
+    from template.query_templates import queries, queries_wilker, queries_kanreg
     if mode == 'instansi':
         query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
-    elif mode == 'wilker':
+    elif mode == 'provinsi':
         query = queries_wilker[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+    elif mode == 'kanreg':
+        query = queries_kanreg[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     else:
         raise ValueError("Mode harus 'instansi' atau 'wilker'")
     return pd.read_sql_query(query, conn)
@@ -96,10 +98,14 @@ def get_all_data(conn, table_name, target_list, mode):
         if mode == 'instansi':
             nama = target['nama']
             cepat_kode = target['cepat_kode']
-        elif mode == 'wilker':
+        elif mode == 'provinsi':
             wilayah = target['wilayah']
             cepat_kode = target['prefix']
-            nama = f"Wilayah Kerja {wilayah.title()}"
+            nama = f"Provinsi {wilayah.title()}"
+        elif mode == 'kanreg':
+            kanreg = target['nama']
+            cepat_kode = target['id']
+            nama = f"Wilker {kanreg}"
         else:
             raise ValueError("Mode harus 'instansi' atau 'wilker'")
         data[nama] = {}

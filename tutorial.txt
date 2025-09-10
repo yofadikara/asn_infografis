@@ -1,4 +1,11 @@
-untuk versi code ini, bisa per instansi atau per wilker, instansi ini bisa pemkot/pemprov/pemkab/instansi pusat, wilker hanya untuk wilayah per prov
+REQUIREMENT
+
+1. Install python
+2. Install modul di cmd klik kanan pada folder > open in terminal > lalu ketik
+
+python -m pip install -r modulepython.txt
+
+untuk versi code ini, bisa per instansi, per provinsi, atau per wilker kanreg, instansi ini bisa pemkot/pemprov/pemkab/instansi pusat, provinsi hanya untuk wilayah per prov, wilker untuk kanreg
 
 untuk run silahkan klik kanan di folder ini > open in terminal > lalu ketik ini
 
@@ -9,9 +16,22 @@ contoh :
 
 python main.py --instansi "badan kepegawaian negara"
 
-untuk per wilker
-python main.py --wilker (nama wilayah)
+untuk per provinsi
+python main.py --provinsi (nama wilayah)
 
 contoh : 
 
 python main.py --wilker "jawa barat"
+
+untuk per kanreg
+python main.py --kanreg (id kanreg 2 digit)
+
+contoh :
+
+python main.py --kanreg 05
+
+hasil ada di folder output
+
+
+
+

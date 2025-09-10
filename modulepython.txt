@@ -1,0 +1,8 @@
+pathlib
+dotenv
+psycopg2
+pandas
+python-pptx
+google-auth
+google-auth-oauthlib
+google-api-python-client

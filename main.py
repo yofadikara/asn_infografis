@@ -24,8 +24,11 @@ filter_value = resolve_filter(args, conn)
 if args.instansi:
     mode = 'instansi'
     target_list = get_provinsi_list(conn, filter_value)
-elif args.wilker:
-    mode = 'wilker'
+elif args.provinsi:
+    mode = 'provinsi'
+    target_list = filter_value
+elif args.kanreg:
+    mode = 'kanreg'
     target_list = filter_value
 else:
     raise ValueError("Mode harus 'instansi' atau 'wilker'")
