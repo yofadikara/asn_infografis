@@ -145,13 +145,15 @@ def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
              cell.margin_right = cm(margin.get("right", 0.1))
      #isi data
      for i, (_, row) in enumerate(df_filtered.iterrows()):
-        label_text = row[label_column]
+        #label_text = row[label_column]
+        label_text = " ".join(str(cell) for cell in row)
         is_pppk = "PPPK" in label_text
+        is_fungsional = "Fungsional" in label_text
         #pewarnaan sesuai mapping
         for j in range(col_count):
             cell = table.cell(i, j)
             #pewarnaan PPK
-            if is_pppk:
+            if is_pppk and is_fungsional:
                 cell.fill.solid()
                 cell.fill.fore_color.rgb = hex_to_rgb("D0E0E3")
             elif fill_color:

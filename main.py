@@ -119,4 +119,5 @@ for prov, kategori_data in data_dict.items():
     if data_dict and any(data_dict.values()):
         export_per_provinsi(data_dict)
     else:
-        print("Tidak ada data yang tersedia untuk diekspor.")'''
+        print("Tidak ada data yang tersedia untuk diekspor.")
+        '''

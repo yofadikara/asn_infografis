@@ -286,7 +286,7 @@ queries_kanreg = {
     f"""SELECT p.jenis_asn, count(*) 
     from {table_name} p
     where p.idkanreginduk = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by p.jenis_asn
@@ -295,7 +295,7 @@ queries_kanreg = {
     f"""select p.jenis_kelamin , count(*) 
     from {table_name} p
     where p.idkanreginduk = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by p.jenis_kelamin""",
@@ -343,7 +343,7 @@ order by b.urutan""",
     FROM {table_name} p 
     WHERE  
     p.idkanreginduk = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     GROUP BY p.kelompok_masa_kerja)a
@@ -351,7 +351,7 @@ order by b.urutan""",
     "Kelompok_Usia":
     f"""select p.kelompok_usia  , count(*) from {table_name} p
     where p.idkanreginduk = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by p.kelompok_usia""",
@@ -397,7 +397,7 @@ FROM
     from {table_name} p
     left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
     where p.idkanreginduk = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    and p.jenis_insker = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansikerja = 'A'
     group by jenisjabatannew
