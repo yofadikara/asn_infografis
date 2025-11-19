@@ -7,7 +7,9 @@ label_column_per_kategori = {
     "Masa_Kerja": "kelompok_masa_kerja",
     "Kelompok_Usia": "kelompok_usia",
     "Ringkasan_Jenis_Jabatan": "kelompok_jabatan",
-    "Jenis_Jabatan": "jenisjabatannew"
+    "Jenis_Jabatan": "jenisjabatannew",
+    "Jenis_Instansi": "jenis_instansi",
+    "Kelompok_Generasi": "kelompok_generasi"
 }
 
 #mapping ke key ppt
@@ -82,6 +84,16 @@ mapping_placeholder_per_kategori = {
             "Fungsional": "{persentase_vis_fungsional}",
             "Pelaksana": "{persentase_vis_pelaksana}"
         }
+    },
+    "Jenis_Instansi": {
+        "count":{
+            "D": "{count_daerah}",
+            "P": "{count_pusat}"
+        },
+        "persentase_vis":{
+            "D": "{persentase_vis_daerah}",
+            "P": "{persentase_vis_pusat}"
+        }
     }
 }
 
@@ -93,16 +105,26 @@ selid_kategori_shared = {
     "Masa_Kerja": 0,
     "Kelompok_Usia": 0,
     "Jenis_Jabatan": 0,
-    "Ringkasan_Jenis_Jabatan": 0
+    "Ringkasan_Jenis_Jabatan": 0,
+    "Kelompok_Generasi": 0
 }
 
-#Mapping diagram
+#Mapping diagram instansi
 mapping_diagram_cm = {
     "SD-SMA": {"x": 13.27, "y": 7, "width": 1.2, "color": RGBColor(220, 20, 87)},
     "DI-DIII": {"x": 15.52, "y": 7, "width": 1.2, "color": RGBColor(220, 20, 87)},
     "DIV/S1": {"x": 17.73, "y": 7, "width": 1.2, "color": RGBColor(220, 20, 87)},
     "S2": {"x": 19.97, "y": 7, "width": 1.2, "color": RGBColor(220, 20, 87)},
     "S3": {"x": 22.29, "y": 7, "width": 1.2, "color": RGBColor(220, 20, 87)}
+}
+
+#Mapping diagram Nasional
+mapping_diagram_nasional = {
+    "SD-SMA": {"x": 0.52, "y": 12.53, "width": 1.2, "color": RGBColor(220, 20, 87)},
+    "DI-DIII": {"x": 2.17, "y": 12.53, "width": 1.2, "color": RGBColor(220, 20, 87)},
+    "DIV/S1": {"x": 3.91, "y": 12.53, "width": 1.2, "color": RGBColor(220, 20, 87)},
+    "S2": {"x": 5.55, "y": 12.53, "width": 1.2, "color": RGBColor(220, 20, 87)},
+    "S3": {"x": 7.34, "y": 12.53, "width": 1.2, "color": RGBColor(220, 20, 87)}
 }
 
 #Mapping Textbox
@@ -114,6 +136,15 @@ mapping_textbox_cm = {
     "S3": {"x": 22.29, "y_offset": 1.3, "width": 1.2}
 }
 
+#Mapping Textbox Nasional
+mapping_textbox_nasional = {
+    "SD-SMA": {"x": 0.52, "y_offset": 1.3, "width": 1.2},
+    "DI-DIII": {"x": 2.17, "y_offset": 1.3, "width": 1.2},
+    "DIV/S1": {"x": 3.91, "y_offset": 1.3, "width": 1.2},
+    "S2": {"x": 5.55, "y_offset": 1.3, "width": 1.2},
+    "S3": {"x": 7.34, "y_offset": 1.3, "width": 1.2}
+}
+
 #Mapping Bulan
 bulan_map_id = {
     1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
@@ -121,7 +152,7 @@ bulan_map_id = {
     9: "September", 10: "Oktober", 11: "November", 12: "Desember"
 }
 
-#posisi table dinamis
+#posisi table dinamis instansi
 TABLE_POSITIONS = {
     "Masa_Kerja": {
         "slide_index": 0,
@@ -192,6 +223,63 @@ TABLE_POSITIONS = {
     }
 }
 
+#mapping table dinamis nasional
+#posisi table dinamis instansi
+TABLE_POSITIONS_NAS = {
+    "Masa_Kerja": {
+        "slide_index": 0,
+        "pos_x_cm": 8.98,
+        "pos_y_cm": 7.98,
+        "col_widths_cm": [1.5, 2.75],
+        "label_column": "kelompok_masa_kerja",
+        "value_column": "count",
+        "margin": {
+            "left": 0.02,
+            "right": 0.02,
+            "top": 0,
+            "bottom": 0.3
+        },
+        "fill_color": "E8EDFD"
+    },
+    "Jenis_Jabatan": {
+        "Struktural": {
+            "slide_index": 0,
+            "pos_x_cm": 13.72,
+            "pos_y_cm": 8.98,
+            "col_widths_cm": [2.26, 1.2],
+            "label_column": "jenisjabatan",
+            "value_column": "count",
+            "margin": {
+                "left": 0,
+                "right": 0.1,
+                "top": 0,
+                "bottom": 0.2
+            },
+            "fill_color": "FDEADA",
+            "label_order": ["PNS JPT Utama", "PPPK JPT Utama", "PNS JPT Madya", "PPPK JPT Madya",
+                            "PNS JPT Pratama", "PPPK JPT Pratama",
+                            "Administrator", "Pengawas", "Eselon V"]
+        },
+        "Fungsional": {
+            "slide_index": 0,
+            "pos_x_cm": 17.43,
+            "pos_y_cm": 8.98,
+            "col_widths_cm": [2.46, 1.8],
+            "label_column": "jenisjabatan",
+            "value_column": "count",
+            "margin": {
+                "left": 0,
+                "right": 0.1,
+                "top": 0,
+                "bottom": 0.2
+            },
+            "fill_color": "F9BFD2",
+            "label_order": ["PNS JF Dosen", "PNS JF Guru", "PNS JF Medis", "PNS JF Teknis",
+                            "PPPK JF Dosen","PPPK JF Guru", "PPPK JF Medis", "PPPK JF Teknis"]
+        }
+    }
+}
+
 #mapping vis table
 VIS_TABLE_POSITIONS = {
     "Masa_Kerja": {
@@ -220,4 +308,12 @@ VIS_TABLE_POSITIONS = {
             "bottom": 0
         }
     }
+}
+
+#warna piechart
+color_map = {
+    "Gen Z (1997-2012)": "#FFAB40",
+    "Gen Y (1981-1996)": "#78909C",
+    "Gen X (1965-1980)": "#ED7D31",
+    "Baby Boomers (1946-1964)": "#3F51B5"
 }

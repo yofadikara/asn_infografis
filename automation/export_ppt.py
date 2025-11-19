@@ -2,9 +2,11 @@ from pptx.util import Pt, Inches
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE 
 from pptx.enum.text import PP_ALIGN
+import matplotlib.pyplot as plt
 import pandas as pd
+from io import BytesIO
 from dataconfig.data import tambah_persentase, get_tanggal_data
-from dataconfig.mapping import mapping_diagram_cm, mapping_textbox_cm, VIS_TABLE_POSITIONS, TABLE_POSITIONS
+from dataconfig.mapping import mapping_diagram_cm, mapping_textbox_cm, mapping_diagram_nasional, mapping_textbox_nasional, VIS_TABLE_POSITIONS, TABLE_POSITIONS, TABLE_POSITIONS_NAS, color_map
 
 #fungsi untuk mengganti teks pada shape dengan mempertahankan gaya
 def replace_text_reserving_style(shape, placeholder, replacement):
@@ -67,16 +69,17 @@ def cm(val):
     return Inches(val / 2.54)
 
 #Fungsi Balok Pendidikan
-def isi_balok_pendidikan(df,slide):
+def isi_balok_pendidikan(df,slide,mode=""):
     max_val = df['persentase_vis_num'].max()
-    max_height = cm(2)
-
+    max_height = cm(4) if mode == "nasional" else cm(2)
+    mapping_diagram = mapping_diagram_nasional if mode == "nasional" else mapping_diagram_cm
+    mapping_text = mapping_textbox_nasional if mode == "nasional" else mapping_textbox_cm
     for _, row in df.iterrows():
          label = row['tingkatpendidikan']
          count = row['count']
          persen_vis = row['persentase_vis_num']
-         if label in mapping_diagram_cm:
-            pos = mapping_diagram_cm[label]
+         if label in mapping_diagram:
+            pos = mapping_diagram[label]
             base_y = cm(pos['y'])
             tinggi = (persen_vis / max_val) * max_height
             if tinggi > base_y:
@@ -93,7 +96,7 @@ def isi_balok_pendidikan(df,slide):
             shape.line.fill.background()  # hilangkan border
         # Textbox Nilai di Atas Balok
             base_y = cm(pos['y'])
-            text_pos = mapping_textbox_cm[label]
+            text_pos = mapping_text[label]
             textbox = slide.shapes.add_textbox(
                 cm(text_pos['x']),
                 base_y - tinggi - cm(text_pos['y_offset']),
@@ -187,8 +190,9 @@ def sort_table_by_mapping(df, label_column, value_column, label_order):
     return df_sorted
 
 #fungsi generate all table dinamis
-def generate_all_tables(prs, data_all):
-    for kategori, config in TABLE_POSITIONS.items():
+def generate_all_tables(prs, data_all, mode=""):
+    config_table = TABLE_POSITIONS_NAS if mode == "nasional" else TABLE_POSITIONS
+    for kategori, config in config_table.items():
         if kategori not in data_all:
             continue
         if kategori == "Jenis_Jabatan":
@@ -208,7 +212,7 @@ def generate_all_tables(prs, data_all):
                 if df_sub.empty:
                     continue
                 slide = prs.slides[sub_config["slide_index"]]
-                font_size = 6
+                font_size = 7 if mode == "nasional" else 6
                 generate_table_from_data(
                     slide=slide,
                     df=df_sub,
@@ -236,27 +240,28 @@ def generate_all_tables(prs, data_all):
                 fill_color=config.get("fill_color"),
                 font_size_override=font_size
             )
-    for kategori, config in VIS_TABLE_POSITIONS.items():
-        if kategori not in data_all:
-            continue
-        df_vis = data_all[kategori]
-        slide = prs.slides[config["slide_index"]]
-        value_column = config["value_column"]
-        pos_x_cm = config["pos_x_cm"]
-        pos_y_cm = config["pos_y_cm"]
-        col_widths_cm = config["col_widths_cm"]
-        margin = config["margin"]
-        fill_color = config.get("fill_color")
-        generate_vis_table(
-            slide=slide,
-            df=df_vis,
-            value_column=value_column,
-            pox_x_cm=pos_x_cm,
-            pos_y_cm=pos_y_cm,
-            col_widths_cm=col_widths_cm[0],
-            margin=margin,
-            fill_color=fill_color
-        )
+    if mode != "nasional":
+        for kategori, config in VIS_TABLE_POSITIONS.items():
+            if kategori not in data_all:
+                continue
+            df_vis = data_all[kategori]
+            slide = prs.slides[config["slide_index"]]
+            value_column = config["value_column"]
+            pos_x_cm = config["pos_x_cm"]
+            pos_y_cm = config["pos_y_cm"]
+            col_widths_cm = config["col_widths_cm"]
+            margin = config["margin"]
+            fill_color = config.get("fill_color")
+            generate_vis_table(
+                slide=slide,
+                df=df_vis,
+                value_column=value_column,
+                pox_x_cm=pos_x_cm,
+                pos_y_cm=pos_y_cm,
+                col_widths_cm=col_widths_cm[0],
+                margin=margin,
+                fill_color=fill_color
+            )
 
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
@@ -299,3 +304,33 @@ def generate_vis_table(slide, df, value_column, pox_x_cm,
             cell.fill.fore_color.rgb = hex_to_rgb(fill_color)
         else:
             cell.fill.background()
+
+#fungsi generate piechart
+def generate_pie_chart(df, label_column, value_column, slide, left_cm, top_cm, width_cm=6, height_cm=6):
+    #Siapkan data
+    labels = [f"{label}\n({persen}%)" for label, persen in zip(df[label_column], df["persentase_vis"])]
+    sizes = df[value_column]
+    colors = [color_map[label] for label in df[label_column]]
+    #Buat pie chart
+    fig, ax = plt.subplots()
+    wedges, texts = ax.pie(
+        sizes,
+        labels=labels,
+        startangle=90,
+        textprops={'fontsize': 11},
+        colors=colors
+    )
+    ax.axis('equal')  # Pie chart bulat
+    #Simpan ke buffer
+    img_stream = BytesIO()
+    plt.savefig(img_stream, format='png', bbox_inches='tight', transparent=True)
+    plt.close(fig)
+    img_stream.seek(0)
+    # Masukkan ke slide
+    slide.shapes.add_picture(
+        img_stream,
+        cm(left_cm),
+        cm(top_cm),
+        width=cm(width_cm),
+        height=cm(height_cm)
+    )

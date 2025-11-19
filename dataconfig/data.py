@@ -10,7 +10,6 @@ def get_table_name(bulan = None, tahun = None, schema = "dwstat"):
         now = datetime.now()
         bulan_lalu = datetime(now.year, now.month, 1) - timedelta(days=1)
     nama_table = f"{schema}.pnsbackup{bulan_lalu.year}{bulan_lalu.month:02}"
-    print("Nama tabel yang digunakan:", nama_table)
     return nama_table
 
 '''namatable = get_table_name()
@@ -44,8 +43,10 @@ def get_tanggal_data():
 
 #Ambil Data Berdasarkan Cepat Kode dan Kategori
 def get_data(conn, cepat_kode, kategori, table_name, mode):
-    from template.query_templates import queries, queries_wilker, queries_kanreg
-    if mode == 'instansi':
+    from template.query_templates import queries, queries_wilker, queries_kanreg, queries_nasional
+    if mode == 'nasional':
+        query = queries_nasional[kategori].format(table_name=table_name)
+    elif mode == 'instansi':
         query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     elif mode == 'provinsi':
         query = queries_wilker[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
@@ -92,22 +93,32 @@ def tambah_persentase(df, kolom_jumlah = 'count'):
 #Pengambilan All Data
 def get_all_data(conn, table_name, target_list, mode):
     data = {}
-    kategori_list = ["Jenis_ASN","Jenis_Kelamin", "Pendidikan",
+    kategori_default = ["Jenis_ASN","Jenis_Kelamin", "Pendidikan",
                      "Masa_Kerja", "Kelompok_Usia", "Jenis_Jabatan"]
+    kategori_nasional = ["Jenis_ASN","Jenis_Instansi","Jenis_Kelamin",
+                         "Kelompok_Generasi","Pendidikan","Masa_Kerja",
+                         "Jenis_Jabatan"]
     for target in target_list:
-        if mode == 'instansi':
+        if mode == 'nasional':
+            nama = 'Nasional'
+            cepat_kode = None
+            kategori_list = kategori_nasional
+        elif mode == 'instansi':
             nama = target['nama']
             cepat_kode = target['cepat_kode']
+            kategori_list = kategori_default
         elif mode == 'provinsi':
             wilayah = target['wilayah']
             cepat_kode = target['prefix']
             nama = f"Provinsi {wilayah.title()}"
+            kategori_list = kategori_default
         elif mode == 'kanreg':
             kanreg = target['nama']
             cepat_kode = target['id']
             nama = f"Wilker {kanreg}"
+            kategori_list = kategori_default
         else:
-            raise ValueError("Mode harus 'instansi' atau 'wilker'")
+            raise ValueError("Mode harus 'instansi', 'provinsi', atau 'kanreg'")
         data[nama] = {}
         for kategori in kategori_list:
             data[nama][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)

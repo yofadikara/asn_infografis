@@ -9,6 +9,7 @@ def get_instansi_filter():
     group.add_argument('--instansi', type=str, help='Nama instansi untuk filter dengan ILIKE')
     group.add_argument('--provinsi', type=str, help='Prefix Wilker untuk filter dengan ILIKE')
     group.add_argument('--kanreg', type=str, help='Prefix Kanreg untuk filter dengan ILIKE')
+    group.add_argument('--nasional', action='store_true', help='Data Nasional tidak perlu input Prefix')
     args = parser.parse_args()
     if args.kanreg and not re.match(r'^\d{2}$', args.kanreg):
         parser.error("Kanreg harus berupa 2 digit angka. Misal : 07")
