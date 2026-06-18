@@ -3,7 +3,7 @@ REQUIREMENT
 1. Install python
 2. Install modul di cmd klik kanan pada folder > open in terminal > lalu ketik
 
-python -m pip install -r modulepython.txt
+python -m pip install -r requirements.txt
 
 untuk versi code ini, bisa per instansi, per provinsi, atau per wilker kanreg, instansi ini bisa pemkot/pemprov/pemkab/instansi pusat, provinsi hanya untuk wilayah per prov, wilker untuk kanreg
 
@@ -32,6 +32,7 @@ python main.py --kanreg 05
 
 hasil ada di folder output
 
-
+API : 
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 

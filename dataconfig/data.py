@@ -1,4 +1,9 @@
 from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message=".*pandas only supports SQLAlchemy connectable.*"
+)
 import pandas as pd
 from dataconfig.db_config import connect_db, load_env
 
@@ -12,28 +17,6 @@ def get_table_name(bulan = None, tahun = None, schema = "dwstat"):
     nama_table = f"{schema}.pnsbackup{bulan_lalu.year}{bulan_lalu.month:02}"
     return nama_table
 
-'''namatable = get_table_name()
-print("Nama tabel yang digunakan:", namatable)'''
-
-#Ambil Data PNS Backup
-'''def get_asn_data(conn, nama_table):
-    query = f"SELECT * FROM {nama_table} LIMIT 5"
-    return pd.read_sql_query(query, conn)'''
-
-#Contoh Eksekusi
-'''if __name__ == "__main__":
-    params = load_env()
-    conn = connect_db(params)
-    if conn:
-        nama_table = get_table_name()
-        print("Nama tabel yang digunakan:", nama_table)
-        asn_data = get_asn_data(conn, nama_table)
-        print(asn_data.head())
-        
-        conn.close()
-    else:
-        print("Tidak dapat mengambil data karena koneksi gagal.")'''
-
 #Populate Tanggal Data
 def get_tanggal_data():
     from dataconfig.mapping import bulan_map_id
@@ -41,15 +24,62 @@ def get_tanggal_data():
     bulan = bulan_map_id[today.month]
     return f"1 {bulan} {today.year}"
 
+#Pengambilan All Data
+def get_all_data(conn, table_name, target_list, mode):
+    data = {}
+    kategori_default = ["Jenis_ASN","Jenis_Kelamin", "Pendidikan",
+                     "Kelompok_Generasi", "Jenis_Jabatan"]
+    kategori_nasional = ["Jenis_ASN","Jenis_Instansi","Jenis_Kelamin",
+                         "Kelompok_Generasi","Pendidikan","Jenis_Jabatan"]
+    for target in target_list:
+        if mode == 'nasional':
+            nama = 'Nasional'
+            cepat_kode = None
+            kategori_list = kategori_nasional
+        elif mode == 'instansi':
+            nama = target['nama']
+            cepat_kode = target['cepat_kode']
+            kategori_list = kategori_default
+        elif mode == 'all':
+            nama = target['nama']
+            cepat_kode = target['cepat_kode']
+            instansi_id = target['id']
+            kategori_list = kategori_default
+        elif mode == 'provinsi':
+            wilayah = target['wilayah']
+            cepat_kode = target['prefix']
+            nama = f"Provinsi {wilayah.title()}"
+            kategori_list = kategori_default
+        elif mode == 'kanreg':
+            kanreg = target['nama']
+            cepat_kode = target['id']
+            nama = f"Wilker {kanreg}"
+            kategori_list = kategori_default
+        else:
+            raise ValueError("Mode harus 'instansi', 'provinsi', atau 'kanreg'")
+        if mode == "all":
+            data[nama] = {"instansi_id":instansi_id, "kategori":{}}  
+        else: 
+            data[nama] = {}
+        for kategori in kategori_list:
+            if mode == "all":
+                data[nama]["kategori"][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)
+            else : 
+                data[nama][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)
+        '''print("Isi data_dict keys:", list(data.keys()))'''
+    return data
+
 #Ambil Data Berdasarkan Cepat Kode dan Kategori
 def get_data(conn, cepat_kode, kategori, table_name, mode):
-    from template.query_templates import queries, queries_wilker, queries_kanreg, queries_nasional
+    from template.query_templates import queries, queries_provinsi, queries_kanreg, queries_nasional
     if mode == 'nasional':
         query = queries_nasional[kategori].format(table_name=table_name)
     elif mode == 'instansi':
         query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+    elif mode == 'all':
+        query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     elif mode == 'provinsi':
-        query = queries_wilker[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+        query = queries_provinsi[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     elif mode == 'kanreg':
         query = queries_kanreg[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     else:
@@ -90,49 +120,8 @@ def tambah_persentase(df, kolom_jumlah = 'count'):
     df['persentase_vis'] = df['persentase_vis_num'].astype(str)+'%'
     return df
 
-#Pengambilan All Data
-def get_all_data(conn, table_name, target_list, mode):
-    data = {}
-    kategori_default = ["Jenis_ASN","Jenis_Kelamin", "Pendidikan",
-                     "Masa_Kerja", "Kelompok_Usia", "Jenis_Jabatan"]
-    kategori_nasional = ["Jenis_ASN","Jenis_Instansi","Jenis_Kelamin",
-                         "Kelompok_Generasi","Pendidikan","Masa_Kerja",
-                         "Jenis_Jabatan"]
-    for target in target_list:
-        if mode == 'nasional':
-            nama = 'Nasional'
-            cepat_kode = None
-            kategori_list = kategori_nasional
-        elif mode == 'instansi':
-            nama = target['nama']
-            cepat_kode = target['cepat_kode']
-            kategori_list = kategori_default
-        elif mode == 'provinsi':
-            wilayah = target['wilayah']
-            cepat_kode = target['prefix']
-            nama = f"Provinsi {wilayah.title()}"
-            kategori_list = kategori_default
-        elif mode == 'kanreg':
-            kanreg = target['nama']
-            cepat_kode = target['id']
-            nama = f"Wilker {kanreg}"
-            kategori_list = kategori_default
-        else:
-            raise ValueError("Mode harus 'instansi', 'provinsi', atau 'kanreg'")
-        data[nama] = {}
-        for kategori in kategori_list:
-            data[nama][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)
-    return data
-    '''from template.query_templates import get_provinsi_list
-    instansi_filter = get_instansi_filter()
-    provinsi_list = get_provinsi_list(conn, instansi_filter)
-    for prov in provinsi_list:
-        nama = prov['nama']
-        cepat_kode = prov['cepat_kode']
-        data[nama] = {}''' 
-
 #Pembuatan Kelompok Jabatan
-def klasifikasi_kelompok_jabatan(df, kolom_sumber='jenisjabatan'):
+'''def klasifikasi_kelompok_jabatan(df, kolom_sumber='jenisjabatan'):
     mapping = {
         'Struktural': ['PNS JPT Utama','PNS JPT Madya','PNS JPT Pratama','PPPK JPT Utama',
                        'PPPK JPT Madya','PPPK JPT Pratama', 'Administrator',
@@ -147,7 +136,7 @@ def klasifikasi_kelompok_jabatan(df, kolom_sumber='jenisjabatan'):
             if jenis in jenis_list:
                 return kelompok
     df['kelompok_jabatan'] = df[kolom_sumber].apply(klasifikasi)
-    return df
+    return df'''
 
 #Ringkasan Kelompok Jabatan
 def ringkasan_kelompok_jabatan(df):

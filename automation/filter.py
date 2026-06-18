@@ -1,11 +1,13 @@
 import argparse
-from template.query_templates import get_wilker_prefix, get_kanreg_prefix
+from template.query_templates import get_provinsi_prefix, get_kanreg_prefix
 import re
+from argparse import Namespace
 
 #Untuk instansi dinamis
 def get_instansi_filter():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--all', type=str, help='All Instansi')
     group.add_argument('--instansi', type=str, help='Nama instansi untuk filter dengan ILIKE')
     group.add_argument('--provinsi', type=str, help='Prefix Wilker untuk filter dengan ILIKE')
     group.add_argument('--kanreg', type=str, help='Prefix Kanreg untuk filter dengan ILIKE')
@@ -17,12 +19,14 @@ def get_instansi_filter():
 
 #untuk memisahkan logika filter yang berhubung dengan conn
 def resolve_filter(args, conn):    
-    if args.instansi:
-        return args.instansi
-    elif args.provinsi:
-        return  get_wilker_prefix(conn, args.provinsi)
-    elif args.kanreg:
-        return get_kanreg_prefix(conn, args.kanreg)
+    if args.get ("instansi"):
+        return args["instansi"]
+    elif args.get("provinsi"):
+        return  get_provinsi_prefix(conn, args["provinsi"])
+    elif args.get("kanreg"):
+        return get_kanreg_prefix(conn, args["kanreg"])
+    elif args.get ("all"):
+        return args["all"]
     else:
         try:
             with open('instansi_filter.txt', 'r', encoding="utf-8") as file:
@@ -31,3 +35,10 @@ def resolve_filter(args, conn):
             print("File instansi_filter.txt tidak ditemukan. Silahkan ketik --nama instansi saat run")
             return None
         
+def normalize_args(args):
+    if isinstance(args, Namespace):
+        return vars(args)   # ubah Namespace → dict
+    elif isinstance(args, dict):
+        return args
+    else:
+       raise TypeError("args must be dict or Namespace")

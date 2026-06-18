@@ -1,5 +1,18 @@
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message=".*pandas only supports SQLAlchemy connectable.*"
+)
 import pandas as pd
 from dataconfig.data import get_table_name
+
+#All Instansi
+def get_all_instansi(conn):
+    query = """SELECT id, cepat_kode, nama
+                FROM ref.instansi WHERE status = 'A'
+                LIMIT 10"""
+    df = pd.read_sql_query(query,conn)
+    return df.to_dict(orient='records')
 
 #Cepat Kode Provinsi
 def get_instansi_list(conn, instansi_filter):
@@ -9,8 +22,8 @@ def get_instansi_list(conn, instansi_filter):
             FROM ref.instansi WHERE
             nama ILIKE %s
             --jenis_instansi_id = 'PROV'"""
-    '''print(f"Hasil Query={query}")'''
-    df = pd.read_sql_query(query, conn, params=[f"%{instansi_filter}%"])
+    params = [f"%{instansi_filter}%"]
+    df = pd.read_sql_query(query, conn, params=params)
     return df.to_dict(orient='records')
 
 #Query Infografis
@@ -19,19 +32,19 @@ queries = {
     "Jenis_ASN":
     f"""SELECT p.jenis_asn, count(*) 
     from {table_name} p
-    where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by p.jenis_asn
     """,
     "Jenis_Kelamin":
     f"""select p.jenis_kelamin , count(*) 
     from {table_name} p
-    where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by p.jenis_kelamin""",
     "Pendidikan":
     f"""select tingkatpendidikan,
@@ -48,100 +61,75 @@ queries = {
     from (
     select 
         case 
-	    when p.tkpendidikan in ('Diploma I','Diploma II') or p.tkpendidikan ilike '%Diploma III%' then 'DI-DIII'
-	    when p.tkpendidikan ilike '%diploma%IV%' or p.tkpendidikan ilike '%S-1%' or p.tkpendidikan = 'Profesi' then 'DIV/S1'
-	    when p.tkpendidikan ilike '%s%2%' or p.tkpendidikan = 'Spesialis' then 'S2'
-	    when p.tkpendidikan ilike '%s%3%' or p.tkpendidikan = 'Subspesialis' then 'S3'
-	    else 'SD-SMA'
+	    when p.tingkat_pendidikan in ('Diploma I','Diploma II') or p.tingkat_pendidikan ilike '%Diploma III%' then 'DI-DIII'
+	    when p.tingkat_pendidikan ilike '%diploma%IV%' or p.tingkat_pendidikan ilike '%S-1%' or p.tingkat_pendidikan = 'Profesi' then 'DIV/S1'
+	    when p.tingkat_pendidikan ilike '%s%2%' or p.tingkat_pendidikan = 'Spesialis' then 'S2'
+	    when p.tingkat_pendidikan ilike '%s%3%' or p.tingkat_pendidikan = 'Subspesialis' then 'S3'
+	    when p.tingkat_pendidikan IN ('Sekolah Dasar','SLTP','SLTP Kejuruan','SLTA','SLTA Kejuruan','SLTA Keguruan') THEN 'SD-SMA'
+        else p.tingkat_pendidikan
         end as tingkatpendidikan, 
     count(*) from {table_name} p
     join ref.instansi i on p.instansi_kerja_id = i.id
-    where p.cepat_kode_instansikerja = '{{cepat_kode}}'
+    where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by tingkatpendidikan 
     )a
     )b
-order by b.urutan""",
-    "Masa_Kerja":
-    f"""select kelompok_masa_kerja, count from (
-    SELECT kelompok_masa_kerja,
-    count(*),
-    CASE kelompok_masa_kerja
-	WHEN ' 0 -  5' THEN 1
-	WHEN ' 6 - 10' THEN 2
-	WHEN '11 - 15' THEN 3
-	WHEN '16 - 20' THEN 4
-	WHEN '21 - 25' THEN 5
-	WHEN '26 - 30' THEN 6
-	WHEN '> 30' THEN 7
-    END AS urutan
-    FROM {table_name} p 
-    WHERE  
-    p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+    order by b.urutan""",
+    "Kelompok_Generasi":
+    f"""select p.kelompok_generasi  , count(*) from {table_name} p
+    where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    GROUP BY p.kelompok_masa_kerja)a
-    order by a.urutan""",
-    "Kelompok_Usia":
-    f"""select p.kelompok_usia  , count(*) from {table_name} p
-    where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by p.kelompok_usia""",
+    and p.status_instansi_kerja = 'A'
+    group by p.kelompok_generasi""",
     "Jenis_Jabatan":
-    f"""SELECT
-  CASE
-    a.jenisjabatannew
-    WHEN 'JPT Utama' THEN
-      'PNS JPT Utama'
-    WHEN 'JPT Madya' THEN
-      'PNS JPT Madya'
-    WHEN 'JPT Pratama' THEN
-      'PNS JPT Pratama'
-    WHEN 'JF Dosen' THEN
-      'PNS JF Dosen'
-    WHEN 'JF Guru' THEN
-      'PNS JF Guru'
-    WHEN 'JF Medis' THEN
-      'PNS JF Medis'
-    WHEN 'JF Teknis' THEN
-      'PNS JF Teknis'
-    WHEN 'PPPK Dosen' THEN
-      'PPPK JF Dosen'
-    WHEN 'PPPK Guru' THEN
-      'PPPK JF Guru'
-    WHEN 'PPPK Kesehatan' THEN
-      'PPPK JF Medis'
-    WHEN 'PPPK Teknis' THEN
-      'PPPK JF Teknis'
-    ELSE
-      a.jenisjabatannew
-  END AS jenisjabatan,
-  count
-FROM
-(
-    SELECT
+    f"""SELECT 
     CASE
-	WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-    WHEN p.jenis_kelompok_jabatan in ('PPPK Tendik','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
-	WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-	ELSE 'PPPK Pelaksana'
-    end jenisjabatannew, count(*)
-    from {table_name} p
-    left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
-    where p.cepat_kode_instansikerja = '{{cepat_kode}}'
-    --and p.jenis_insker = 'D' 
+	    WHEN p.jenis_kelompok_jabatan IN ('JPT Madya','JPT Pratama','JPT Utama','Administrator','Pengawas','Eselon V') THEN 'Struktural'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' THEN 'JF Dosen'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' THEN 'JF Guru'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' THEN 'JF Kesehatan'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' THEN 'JF Teknis'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' THEN 'Pelaksana'
+    END AS kelompok_jabatan,
+    CASE
+      WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PPPK' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    ELSE p.jenis_kelompok_jabatan
+    END AS jabatan,
+    COUNT(*)
+    FROM {table_name} p
+    where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by jenisjabatannew
-    )a"""
+    and p.status_instansi_kerja = 'A'
+    group by jabatan,kelompok_jabatan
+    """
 }
 
-#Wilker
-def get_wilker_prefix(conn, wilayah_name):
+#Provinsi
+def get_provinsi_prefix(conn, wilayah_name):
     query = """SELECT left(cepat_kode,2) as prefix, nama 
             FROM ref.instansi WHERE
             nama ILIKE %s"""
@@ -150,25 +138,25 @@ def get_wilker_prefix(conn, wilayah_name):
     #penambahan kolom wilayah
     return [{'prefix': p, 'wilayah': wilayah_name} for p in prefix_list]
 
-#Query Infografis wilker
+#Query Infografis provinsi
 table_name = get_table_name()
-queries_wilker = {
+queries_provinsi = {
     "Jenis_ASN":
     f"""SELECT p.jenis_asn, count(*) 
     from {table_name} p
-    where p.cepat_kode_instansikerja ilike '{{cepat_kode}}%'
-    --and p.jenis_insker = 'D' 
+    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by p.jenis_asn
     """,
     "Jenis_Kelamin":
     f"""select p.jenis_kelamin , count(*) 
     from {table_name} p
-    where p.cepat_kode_instansikerja ilike '{{cepat_kode}}%'
-    --and p.jenis_insker = 'D' 
+    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by p.jenis_kelamin""",
     "Pendidikan":
     f"""select tingkatpendidikan,
@@ -185,96 +173,72 @@ queries_wilker = {
     from (
     select 
         case 
-	    when p.tkpendidikan in ('Diploma I','Diploma II') or p.tkpendidikan ilike '%Diploma III%' then 'DI-DIII'
-	    when p.tkpendidikan ilike '%diploma%IV%' or p.tkpendidikan ilike '%S-1%' or p.tkpendidikan = 'Profesi' then 'DIV/S1'
-	    when p.tkpendidikan ilike '%s%2%' or p.tkpendidikan = 'Spesialis' then 'S2'
-	    when p.tkpendidikan ilike '%s%3%' or p.tkpendidikan = 'Subspesialis' then 'S3'
-	    else 'SD-SMA'
+	    when p.tingkat_pendidikan in ('Diploma I','Diploma II') or p.tingkat_pendidikan ilike '%Diploma III%' then 'DI-DIII'
+	    when p.tingkat_pendidikan ilike '%diploma%IV%' or p.tingkat_pendidikan ilike '%S-1%' or p.tingkat_pendidikan = 'Profesi' then 'DIV/S1'
+	    when p.tingkat_pendidikan ilike '%s%2%' or p.tingkat_pendidikan = 'Spesialis' then 'S2'
+	    when p.tingkat_pendidikan ilike '%s%3%' or p.tingkat_pendidikan = 'Subspesialis' then 'S3'
+	    when p.tingkat_pendidikan IN ('Sekolah Dasar','SLTP','SLTP Kejuruan','SLTA','SLTA Kejuruan','SLTA Keguruan') THEN 'SD-SMA'
+        else p.tingkat_pendidikan
         end as tingkatpendidikan, 
     count(*) from {table_name} p
     join ref.instansi i on p.instansi_kerja_id = i.id
-    where p.cepat_kode_instansikerja ilike '{{cepat_kode}}%'
+    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by tingkatpendidikan 
     )a
     )b
-order by b.urutan""",
-    "Masa_Kerja":
-    f"""select kelompok_masa_kerja, count from (
-    SELECT kelompok_masa_kerja,
-    count(*),
-    CASE kelompok_masa_kerja
-	WHEN ' 0 -  5' THEN 1
-	WHEN ' 6 - 10' THEN 2
-	WHEN '11 - 15' THEN 3
-	WHEN '16 - 20' THEN 4
-	WHEN '21 - 25' THEN 5
-	WHEN '26 - 30' THEN 6
-	WHEN '> 30' THEN 7
-    END AS urutan
-    FROM {table_name} p 
-    WHERE  
-    p.cepat_kode_instansikerja ilike '{{cepat_kode}}%'
-    --and p.jenis_insker = 'D' 
+    order by b.urutan""",
+    "Kelompok_Generasi":
+    f"""select p.kelompok_generasi  , count(*) from {table_name} p
+    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    GROUP BY p.kelompok_masa_kerja)a
-    order by a.urutan""",
-    "Kelompok_Usia":
-    f"""select p.kelompok_usia  , count(*) from {table_name} p
-    where p.cepat_kode_instansikerja ilike '{{cepat_kode}}%'
-    --and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by p.kelompok_usia""",
+    and p.status_instansi_kerja = 'A'
+    group by p.kelompok_generasi""",
     "Jenis_Jabatan":
-    f"""SELECT
-  CASE
-    a.jenisjabatannew
-    WHEN 'JPT Utama' THEN
-      'PNS JPT Utama'
-    WHEN 'JPT Madya' THEN
-      'PNS JPT Madya'
-    WHEN 'JPT Pratama' THEN
-      'PNS JPT Pratama'
-    WHEN 'JF Dosen' THEN
-      'PNS JF Dosen'
-    WHEN 'JF Guru' THEN
-      'PNS JF Guru'
-    WHEN 'JF Medis' THEN
-      'PNS JF Medis'
-    WHEN 'JF Teknis' THEN
-      'PNS JF Teknis'
-    WHEN 'PPPK Dosen' THEN
-      'PPPK JF Dosen'
-    WHEN 'PPPK Guru' THEN
-      'PPPK JF Guru'
-    WHEN 'PPPK Kesehatan' THEN
-      'PPPK JF Medis'
-    WHEN 'PPPK Teknis' THEN
-      'PPPK JF Teknis'
-    ELSE
-      a.jenisjabatannew
-  END AS jenisjabatan,
-  count
-FROM
-(
-    SELECT
+    f"""SELECT 
     CASE
-	WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-    WHEN p.jenis_kelompok_jabatan in ('PPPK Tendik','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
-	WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-	ELSE 'PPPK Pelaksana'
-    end jenisjabatannew, count(*)
-    from {table_name} p
-    left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
-    where p.cepat_kode_instansikerja ilike '{{cepat_kode}}%'
-    --and p.jenis_insker = 'D' 
+	    WHEN p.jenis_kelompok_jabatan IN ('JPT Madya','JPT Pratama','JPT Utama','Administrator','Pengawas','Eselon V') THEN 'Struktural'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' THEN 'JF Dosen'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' THEN 'JF Guru'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' THEN 'JF Kesehatan'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' THEN 'JF Teknis'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' THEN 'Pelaksana'
+    END AS kelompok_jabatan,
+    CASE
+      WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PPPK' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    ELSE p.jenis_kelompok_jabatan
+    END AS jabatan,
+    COUNT(*)
+    FROM
+    {table_name} p
+    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    --and p.jenis_instansi_kerja = 'D' 
     and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by jenisjabatannew
-    )a"""
+    and p.status_instansi_kerja = 'A'
+    group by jabatan,kelompok_jabatan
+    """
 }
 
 #Kanreg
@@ -289,19 +253,13 @@ queries_kanreg = {
     "Jenis_ASN":
     f"""SELECT p.jenis_asn, count(*) 
     from {table_name} p
-    where p.idkanreginduk = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+	  WHERE p.status_instansi_kerja = 'A' AND p.id_kanreg_instansi_kerja = '{{cepat_kode}}' AND p.jenis_instansi_kerja = 'D'
     group by p.jenis_asn
     """,
     "Jenis_Kelamin":
     f"""select p.jenis_kelamin , count(*) 
     from {table_name} p
-    where p.idkanreginduk = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+	  WHERE p.status_instansi_kerja = 'A' AND p.id_kanreg_instansi_kerja = '{{cepat_kode}}' AND p.jenis_instansi_kerja = 'D'
     group by p.jenis_kelamin""",
     "Pendidikan":
     f"""select tingkatpendidikan,
@@ -318,96 +276,62 @@ queries_kanreg = {
     from (
     select 
         case 
-	    when p.tkpendidikan in ('Diploma I','Diploma II') or p.tkpendidikan ilike '%Diploma III%' then 'DI-DIII'
-	    when p.tkpendidikan ilike '%diploma%IV%' or p.tkpendidikan ilike '%S-1%' or p.tkpendidikan = 'Profesi' then 'DIV/S1'
-	    when p.tkpendidikan ilike '%s%2%' or p.tkpendidikan = 'Spesialis' then 'S2'
-	    when p.tkpendidikan ilike '%s%3%' or p.tkpendidikan = 'Subspesialis' then 'S3'
-	    else 'SD-SMA'
+	    when p.tingkat_pendidikan in ('Diploma I','Diploma II') or p.tingkat_pendidikan ilike '%Diploma III%' then 'DI-DIII'
+	    when p.tingkat_pendidikan ilike '%diploma%IV%' or p.tingkat_pendidikan ilike '%S-1%' or p.tingkat_pendidikan = 'Profesi' then 'DIV/S1'
+	    when p.tingkat_pendidikan ilike '%s%2%' or p.tingkat_pendidikan = 'Spesialis' then 'S2'
+	    when p.tingkat_pendidikan ilike '%s%3%' or p.tingkat_pendidikan = 'Subspesialis' then 'S3'
+	    when p.tingkat_pendidikan IN ('Sekolah Dasar','SLTP','SLTP Kejuruan','SLTA','SLTA Kejuruan','SLTA Keguruan') THEN 'SD-SMA'
+        else p.tingkat_pendidikan
         end as tingkatpendidikan, 
     count(*) from {table_name} p
-    join ref.instansi i on p.instansi_kerja_id = i.id
-    where p.idkanreginduk = '{{cepat_kode}}'
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+	  WHERE p.status_instansi_kerja = 'A' AND p.id_kanreg_instansi_kerja = '{{cepat_kode}}' AND p.jenis_instansi_kerja = 'D'
     group by tingkatpendidikan 
     )a
     )b
-order by b.urutan""",
-    "Masa_Kerja":
-    f"""select kelompok_masa_kerja, count from (
-    SELECT kelompok_masa_kerja,
-    count(*),
-    CASE kelompok_masa_kerja
-	WHEN ' 0 -  5' THEN 1
-	WHEN ' 6 - 10' THEN 2
-	WHEN '11 - 15' THEN 3
-	WHEN '16 - 20' THEN 4
-	WHEN '21 - 25' THEN 5
-	WHEN '26 - 30' THEN 6
-	WHEN '> 30' THEN 7
-    END AS urutan
-    FROM {table_name} p 
-    WHERE  
-    p.idkanreginduk = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    GROUP BY p.kelompok_masa_kerja)a
-    order by a.urutan""",
-    "Kelompok_Usia":
-    f"""select p.kelompok_usia  , count(*) from {table_name} p
-    where p.idkanreginduk = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by p.kelompok_usia""",
+    order by b.urutan""",
+    "Kelompok_Generasi":
+    f"""select p.kelompok_generasi  , count(*) from {table_name} p
+	  WHERE p.status_instansi_kerja = 'A' AND p.id_kanreg_instansi_kerja = '{{cepat_kode}}' AND p.jenis_instansi_kerja = 'D'
+    group by p.kelompok_generasi""",
     "Jenis_Jabatan":
-    f"""SELECT
-  CASE
-    a.jenisjabatannew
-    WHEN 'JPT Utama' THEN
-      'PNS JPT Utama'
-    WHEN 'JPT Madya' THEN
-      'PNS JPT Madya'
-    WHEN 'JPT Pratama' THEN
-      'PNS JPT Pratama'
-    WHEN 'JF Dosen' THEN
-      'PNS JF Dosen'
-    WHEN 'JF Guru' THEN
-      'PNS JF Guru'
-    WHEN 'JF Medis' THEN
-      'PNS JF Medis'
-    WHEN 'JF Teknis' THEN
-      'PNS JF Teknis'
-    WHEN 'PPPK Dosen' THEN
-      'PPPK JF Dosen'
-    WHEN 'PPPK Guru' THEN
-      'PPPK JF Guru'
-    WHEN 'PPPK Kesehatan' THEN
-      'PPPK JF Medis'
-    WHEN 'PPPK Teknis' THEN
-      'PPPK JF Teknis'
-    ELSE
-      a.jenisjabatannew
-  END AS jenisjabatan,
-  count
-FROM
-(
-    SELECT
+    f"""SELECT 
     CASE
-	WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-    WHEN p.jenis_kelompok_jabatan in ('PPPK Tendik','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
-	WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-	ELSE 'PPPK Pelaksana'
-    end jenisjabatannew, count(*)
+	    WHEN p.jenis_kelompok_jabatan IN ('JPT Madya','JPT Pratama','JPT Utama','Administrator','Pengawas','Eselon V') THEN 'Struktural'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' THEN 'JF Dosen'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' THEN 'JF Guru'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' THEN 'JF Kesehatan'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' THEN 'JF Teknis'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' THEN 'Pelaksana'
+    END AS kelompok_jabatan,
+    CASE
+      WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PPPK' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    ELSE p.jenis_kelompok_jabatan
+    END AS jabatan,
+    COUNT(*)
     from {table_name} p
-    left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
-    where p.idkanreginduk = '{{cepat_kode}}'
-    and p.jenis_insker = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by jenisjabatannew
-    )a"""
+	  WHERE p.status_instansi_kerja = 'A' AND p.id_kanreg_instansi_kerja = '{{cepat_kode}}' AND p.jenis_instansi_kerja = 'D'
+    group by jabatan,kelompok_jabatan
+    """
 }
 
 #NASIONAL
@@ -415,22 +339,22 @@ queries_nasional = {
     "Jenis_ASN":
     f"""select p.jenis_asn, count(*) from {table_name} p 
     where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92')) 
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     GROUP BY p.jenis_asn""",
     "Jenis_Instansi":
-    f"""select p.jenis_insker as jenis_instansi, count(*) from {table_name} p
+    f"""select p.jenis_instansi_kerja as jenis_instansi, count(*) from {table_name} p
     where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    GROUP BY p.jenis_insker""",
+    and p.status_instansi_kerja = 'A'
+    GROUP BY p.jenis_instansi_kerja""",
     "Jenis_Kelamin":
     f"""select p.jenis_kelamin, count(*) from {table_name} p
     where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     GROUP BY p.jenis_kelamin""",
     "Kelompok_Generasi":
     f"""select p.kelompok_generasi, count(*) from {table_name} p
     where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     GROUP BY p.kelompok_generasi""",
     "Pendidikan":
     f"""select tingkatpendidikan,
@@ -447,83 +371,61 @@ queries_nasional = {
     from (
     select 
         case 
-	    when p.tkpendidikan in ('Diploma I','Diploma II') or p.tkpendidikan ilike '%Diploma III%' then 'DI-DIII'
-	    when p.tkpendidikan ilike '%diploma%IV%' or p.tkpendidikan ilike '%S-1%' or p.tkpendidikan = 'Profesi' then 'DIV/S1'
-	    when p.tkpendidikan ilike '%s%2%' or p.tkpendidikan = 'Spesialis' then 'S2'
-	    when p.tkpendidikan ilike '%s%3%' or p.tkpendidikan = 'Subspesialis' then 'S3'
-	    else 'SD-SMA'
+	    when p.tingkat_pendidikan in ('Diploma I','Diploma II') or p.tingkat_pendidikan ilike '%Diploma III%' then 'DI-DIII'
+	    when p.tingkat_pendidikan ilike '%diploma%IV%' or p.tingkat_pendidikan ilike '%S-1%' or p.tingkat_pendidikan = 'Profesi' then 'DIV/S1'
+	    when p.tingkat_pendidikan ilike '%s%2%' or p.tingkat_pendidikan = 'Spesialis' then 'S2'
+	    when p.tingkat_pendidikan ilike '%s%3%' or p.tingkat_pendidikan = 'Subspesialis' then 'S3'
+	    when p.tingkat_pendidikan IN ('Sekolah Dasar','SLTP','SLTP Kejuruan','SLTA','SLTA Kejuruan','SLTA Keguruan') THEN 'SD-SMA'
+        else p.tingkat_pendidikan
         end as tingkatpendidikan, 
     count(*) from {table_name} p
     join ref.instansi i on p.instansi_kerja_id = i.id
     where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
+    and p.status_instansi_kerja = 'A'
     group by tingkatpendidikan 
     )a
     )b
     order by b.urutan""",
-    "Masa_Kerja":
-    f"""select kelompok_masa_kerja, count from (
-    SELECT kelompok_masa_kerja,
-    count(*),
-    CASE kelompok_masa_kerja
-        	WHEN ' 0 -  5' THEN 1
-          WHEN ' 6 - 10' THEN 2
-          WHEN '11 - 15' THEN 3
-          WHEN '16 - 20' THEN 4
-          WHEN '21 - 25' THEN 5
-          WHEN '26 - 30' THEN 6
-          WHEN '> 30' THEN 7
-    END AS urutan
-    FROM {table_name} p 
-    WHERE  
-    (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    GROUP BY p.kelompok_masa_kerja)a
-    order by a.urutan""",
     "Jenis_Jabatan":
-    f"""SELECT
+    f"""SELECT 
     CASE
-    a.jenisjabatannew
-    WHEN 'JPT Utama' THEN
-      'PNS JPT Utama'
-    WHEN 'JPT Madya' THEN
-      'PNS JPT Madya'
-    WHEN 'JPT Pratama' THEN
-      'PNS JPT Pratama'
-    WHEN 'JF Dosen' THEN
-      'PNS JF Dosen'
-    WHEN 'JF Guru' THEN
-      'PNS JF Guru'
-    WHEN 'JF Medis' THEN
-      'PNS JF Medis'
-    WHEN 'JF Teknis' THEN
-      'PNS JF Teknis'
-    WHEN 'PPPK Dosen' THEN
-      'PPPK JF Dosen'
-    WHEN 'PPPK Guru' THEN
-      'PPPK JF Guru'
-    WHEN 'PPPK Kesehatan' THEN
-      'PPPK JF Medis'
-    WHEN 'PPPK Teknis' THEN
-      'PPPK JF Teknis'
-    ELSE
-      a.jenisjabatannew
-    END AS jenisjabatan,
-    count
-    FROM
-    (
-    SELECT
+	    WHEN p.jenis_kelompok_jabatan IN ('JPT Madya','JPT Pratama','JPT Utama','Administrator','Pengawas','Eselon V') THEN 'Struktural'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' THEN 'JF Dosen'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' THEN 'JF Guru'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' THEN 'JF Kesehatan'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' THEN 'JF Teknis'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' THEN 'Pelaksana'
+    END AS kelompok_jabatan,
     CASE
-    WHEN p.jenis_asn = 'PNS' THEN p.jenis_kelompok_jabatan
-    WHEN p.jenis_kelompok_jabatan in ('PPPK Tendik','PPPK Penyuluh Pertanian') THEN 'PPPK Teknis'
-    WHEN (p.jenis_jabatan_id='2' AND jf.id IS NOT NULL) OR p.jenis_kelompok_jabatan LIKE '%JPT%' THEN p.jenis_kelompok_jabatan
-    ELSE 'PPPK Pelaksana'
-    end jenisjabatannew, count(*)
+      WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Utama' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Utama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Madya' AND p.jenis_asn = 'PPPK' THEN 'PPPK JPT Madya'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PNS' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JPT Pratama' AND p.jenis_asn = 'PPPK' THEN 'PNS JPT Pratama'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Dosen' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Guru' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Kesehatan' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan = 'JF Teknis' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PNS' THEN 'PNS'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK' THEN 'PPPK'
+	    WHEN p.jenis_kelompok_jabatan ILIKE '%pelaksana%' AND p.jenis_asn = 'PPPK Paruh Waktu' THEN 'PPPK Paruh Waktu'
+	    ELSE p.jenis_kelompok_jabatan
+    END AS jabatan,
+    COUNT(*)
     from {table_name} p
     left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
     where
     (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
-    and p.status_instansikerja = 'A'
-    group by jenisjabatannew
-    )a"""
+    and p.status_instansi_kerja = 'A'
+    group by kelompok_jabatan, jabatan
+    """
 }

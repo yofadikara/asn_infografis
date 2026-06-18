@@ -4,9 +4,10 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 import matplotlib.pyplot as plt
 import pandas as pd
+import re
 from io import BytesIO
 from dataconfig.data import tambah_persentase, get_tanggal_data
-from dataconfig.mapping import mapping_diagram_cm, mapping_textbox_cm, mapping_diagram_nasional, mapping_textbox_nasional, VIS_TABLE_POSITIONS, TABLE_POSITIONS, TABLE_POSITIONS_NAS, color_map
+from dataconfig.mapping import mapping_diagram_cm, mapping_textbox_cm, mapping_diagram_nasional, mapping_textbox_nasional, mapping_color_textbox
 
 #fungsi untuk mengganti teks pada shape dengan mempertahankan gaya
 def replace_text_reserving_style(shape, placeholder, replacement):
@@ -28,7 +29,7 @@ def generate_instansi_values(prov):
           "{tanggal_data}": get_tanggal_data()
      }
 
-#fungsi untuk mengisi slide dengan data jenis ASN
+#fungsi isi placeholder infografis
 def isi_infografis(prs, df_kategori, mapping_placeholder, mapping_instansi, label_column='label'):
     slide = prs.slides[0]
     #untuk penjagaan placeholder kosong
@@ -41,18 +42,34 @@ def isi_infografis(prs, df_kategori, mapping_placeholder, mapping_instansi, labe
              used_placeholders.add(placeholder)
         text = shape.text
         for idx, row in df_kategori.iterrows():
-            label = row.get(label_column)
-            for kolom_data, map_label in mapping_placeholder.items():
-                if label in map_label:
-                    placeholder = map_label[label]
-                    nilai = row.get(kolom_data)
+            if label_column == "jabatan":
+                kelompok = row.get("kelompok_jabatan")
+                jabatan = row.get("jabatan")
+                placeholder = mapping_placeholder["count"].get(kelompok,{}).get(jabatan,None)
+                if placeholder:
+                    nilai = row.get("count")
                     nilai_str = f"{nilai:,}".replace(",",".") if isinstance(nilai, (int)) else str(nilai)
                     replace_text_reserving_style(shape, placeholder, nilai_str)
                     used_placeholders.add(placeholder)
+            else:
+                label = row.get(label_column)
+                for kolom_data, map_label in mapping_placeholder.items():
+                    if label in map_label:
+                        placeholder = map_label[label]
+                        nilai = row.get(kolom_data)
+                        nilai_str = f"{nilai:,}".replace(",",".") if isinstance(nilai, (int)) else str(nilai)
+                        replace_text_reserving_style(shape, placeholder, nilai_str)
+                        used_placeholders.add(placeholder)
     #penjagaan placeholder yang tidak terpakai
     all_placeholders = set(mapping_instansi.keys())
-    for map_label in mapping_placeholder.values():
-        all_placeholders.update(map_label.values())
+    if label_column == "jabatan":
+        for kelompok_dict in mapping_placeholder.get("count",{}).values():
+            for v in kelompok_dict.values():
+                if isinstance(v, str):
+                    all_placeholders.add(v)
+    else:
+        for map_label in mapping_placeholder.values():
+            all_placeholders.update(map_label.values())
     unused_placeholders = all_placeholders - used_placeholders
     for shape in slide.shapes:
         if not shape.has_text_frame:
@@ -71,7 +88,7 @@ def cm(val):
 #Fungsi Balok Pendidikan
 def isi_balok_pendidikan(df,slide,mode=""):
     max_val = df['persentase_vis_num'].max()
-    max_height = cm(4) if mode == "nasional" else cm(2)
+    max_height = cm(5)
     mapping_diagram = mapping_diagram_nasional if mode == "nasional" else mapping_diagram_cm
     mapping_text = mapping_textbox_nasional if mode == "nasional" else mapping_textbox_cm
     for _, row in df.iterrows():
@@ -85,7 +102,7 @@ def isi_balok_pendidikan(df,slide,mode=""):
             if tinggi > base_y:
                  tinggi = base_y - cm(0.1)  # mengurangi sedikit agar tidak melebihi batas
             y_top = base_y - tinggi
-        # Balok Diagram
+            #Balok Diagram
             shape = slide.shapes.add_shape(
                 MSO_SHAPE.RECTANGLE,
                 cm(pos['x']), y_top,
@@ -94,7 +111,7 @@ def isi_balok_pendidikan(df,slide,mode=""):
             shape.fill.solid()
             shape.fill.fore_color.rgb = pos['color']
             shape.line.fill.background()  # hilangkan border
-        # Textbox Nilai di Atas Balok
+            #Textbox Nilai di Atas Balok
             base_y = cm(pos['y'])
             text_pos = mapping_text[label]
             textbox = slide.shapes.add_textbox(
@@ -110,17 +127,32 @@ def isi_balok_pendidikan(df,slide,mode=""):
             #baris persentase
             run0 = tf.paragraphs[0].runs[0]
             font0 = run0.font
-            font0.size = Pt(12)
+            font0.size = Pt(18) if mode == "nasional" else Pt(23)
             font0.bold = True
-            font0.color.rgb = RGBColor(31,78,121)
+            font0.name = "Open Sans Bold"
+            if label in mapping_color_textbox:
+                font0.color.rgb = mapping_color_textbox[label]
+            else:
+                font0.color.rgb = RGBColor(89,89,89)
             #baris count
             run1 = tf.paragraphs[1].runs[0]
             font1 = run1.font
-            font1.size = Pt(11)
-            font1.color.rgb = RGBColor(37,156,215)
+            font1.size = Pt(11.5) if mode == "nasional" else Pt(16)
+            font1.name = "Open Sans Bold"
+            font1.color.rgb = RGBColor(89,89,89)
             
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return RGBColor(int(hex_color[0:2], 16), 
+                    int(hex_color[2:4], 16), 
+                    int(hex_color[4:6], 16))    
+
+def sanitize_filename(name: str) -> str:
+    # Ganti karakter ilegal dengan underscore atau spasi
+    return re.sub(r'[<>:"/\\|?*]', '_', name)
+        
 #pembuatan table dinamis
-def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
+'''def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
                              pos_y_cm, col_widths_cm, margin, fill_color=None,
                              font_size_override=None):
      df_filtered = df[df[value_column] > 0].copy()
@@ -129,10 +161,12 @@ def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
           return
      row_count = len(df_filtered)
      col_count = 2
+     row_height = 0.27 #tinggi per baris
+     table_height = row_height * row_count
      table_shape = slide.shapes.add_table(
          row_count, col_count,
          cm(pos_x_cm), cm(pos_y_cm),
-         cm(sum(col_widths_cm)), cm(0.8)
+         cm(sum(col_widths_cm)), cm(table_height)
      )
      table = table_shape.table
      #set lebar kolom
@@ -167,30 +201,30 @@ def generate_table_from_data(slide, df, label_column, value_column, pos_x_cm,
         table.cell(i,0).text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
         for run in table.cell(i, 0).text_frame.paragraphs[0].runs:
             font = run.font
-            font.size = Pt(font_size_override) if font_size_override else Pt(10)
+            font.size = Pt(font_size_override) if font_size_override else Pt(9)
         #value
         value = int(row[value_column]) if pd.notnull(row[value_column]) else 0
         table.cell(i, 1).text = f"{value:,}".replace(",",".")
         table.cell(i, 1).text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
         for run in table.cell(i, 1).text_frame.paragraphs[0].runs:
             font = run.font
-            font.size = Pt(font_size_override) if font_size_override else Pt(10)
+            font.size = Pt(font_size_override) if font_size_override else Pt(9)'''
 
 #fungsi sort table
-def sort_table_by_mapping(df, label_column, value_column, label_order):
+'''def sort_table_by_mapping(df, label_column, value_column, label_order):
     available_labels = df[label_column].unique().tolist()
     filtered_order = [label for label in label_order if label in available_labels]
     df_sorted = (
         df[df[label_column].isin(filtered_order)]
         .set_index(label_column)
-        .reindex(label_order)
+        .reindex(filtered_order)
         .dropna(subset=[value_column])
         .reset_index()
     )
-    return df_sorted
+    return df_sorted'''
 
 #fungsi generate all table dinamis
-def generate_all_tables(prs, data_all, mode=""):
+'''def generate_all_tables(prs, data_all, mode=""):
     config_table = TABLE_POSITIONS_NAS if mode == "nasional" else TABLE_POSITIONS
     for kategori, config in config_table.items():
         if kategori not in data_all:
@@ -212,7 +246,7 @@ def generate_all_tables(prs, data_all, mode=""):
                 if df_sub.empty:
                     continue
                 slide = prs.slides[sub_config["slide_index"]]
-                font_size = 7 if mode == "nasional" else 6
+                font_size = 7 if kelompok == "Struktural" and mode == "nasional" else 6
                 generate_table_from_data(
                     slide=slide,
                     df=df_sub,
@@ -261,16 +295,10 @@ def generate_all_tables(prs, data_all, mode=""):
                 col_widths_cm=col_widths_cm[0],
                 margin=margin,
                 fill_color=fill_color
-            )
-
-def hex_to_rgb(hex_color):
-    hex_color = hex_color.lstrip('#')
-    return RGBColor(int(hex_color[0:2], 16), 
-                    int(hex_color[2:4], 16), 
-                    int(hex_color[4:6], 16))
+            )'''
 
 #fungsi table transparan persentase
-def generate_vis_table(slide, df, value_column, pox_x_cm,
+'''def generate_vis_table(slide, df, value_column, pox_x_cm,
                        pos_y_cm, col_widths_cm, margin, fill_color=None):
     df_filtered = df[df[value_column].str.rstrip('%').astype(float) > 0].copy()
     if df_filtered.empty:
@@ -295,7 +323,7 @@ def generate_vis_table(slide, df, value_column, pox_x_cm,
         paragraph = cell.text_frame.paragraphs[0]
         paragraph.alignment = PP_ALIGN.RIGHT
         for run in paragraph.runs:
-            run.font.size = Pt(10)
+            run.font.size = Pt(9)
             run.font.bold = True
             run.font.color.rgb = RGBColor(31,78,121)
         #set fill color
@@ -303,10 +331,10 @@ def generate_vis_table(slide, df, value_column, pox_x_cm,
             cell.fill.solid()
             cell.fill.fore_color.rgb = hex_to_rgb(fill_color)
         else:
-            cell.fill.background()
+            cell.fill.background()'''
 
 #fungsi generate piechart
-def generate_pie_chart(df, label_column, value_column, slide, left_cm, top_cm, width_cm=6, height_cm=6):
+'''def generate_pie_chart(df, label_column, value_column, slide, left_cm, top_cm, width_cm=6, height_cm=6):
     #Siapkan data
     labels = [f"{label}\n({persen}%)" for label, persen in zip(df[label_column], df["persentase_vis"])]
     sizes = df[value_column]
@@ -333,4 +361,5 @@ def generate_pie_chart(df, label_column, value_column, slide, left_cm, top_cm, w
         cm(top_cm),
         width=cm(width_cm),
         height=cm(height_cm)
-    )
+    )'''
+
