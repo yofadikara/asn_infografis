@@ -2,6 +2,7 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+from dataconfig.mapping import logger
 
 
 #Load ENV
@@ -20,8 +21,8 @@ def load_env():
 def connect_db(params):
     try:
         conn = psycopg2.connect(**params)
-        print("Koneksi ke database berhasil.")
+        logger.info("Koneksi ke database berhasil.")
         return conn
     except Exception as e:
-        print("Koneksi ke database gagal:", e)
+        logger.warning("Koneksi ke database gagal:", e)
         return None

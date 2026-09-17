@@ -2,12 +2,14 @@ import argparse
 from template.query_templates import get_provinsi_prefix, get_kanreg_prefix
 import re
 from argparse import Namespace
+from dataconfig.mapping import logger
 
 #Untuk instansi dinamis
 def get_instansi_filter():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--all', type=str, help='All Instansi')
+    group.add_argument('--allprovinsi', type=str, help='All ASN di wilayah Provinsi')
     group.add_argument('--instansi', type=str, help='Nama instansi untuk filter dengan ILIKE')
     group.add_argument('--provinsi', type=str, help='Prefix Wilker untuk filter dengan ILIKE')
     group.add_argument('--kanreg', type=str, help='Prefix Kanreg untuk filter dengan ILIKE')
@@ -22,17 +24,19 @@ def resolve_filter(args, conn):
     if args.get ("instansi"):
         return args["instansi"]
     elif args.get("provinsi"):
-        return  get_provinsi_prefix(conn, args["provinsi"])
+        return args["provinsi"]
     elif args.get("kanreg"):
-        return get_kanreg_prefix(conn, args["kanreg"])
+        return args["kanreg"]
     elif args.get ("all"):
         return args["all"]
+    elif args.get ("allprovinsi"):
+        return args["allprovinsi"]
     else:
         try:
             with open('instansi_filter.txt', 'r', encoding="utf-8") as file:
                 return file.read().strip()
         except FileNotFoundError:
-            print("File instansi_filter.txt tidak ditemukan. Silahkan ketik --nama instansi saat run")
+            logger.warning("File instansi_filter.txt tidak ditemukan. Silahkan ketik --nama instansi saat run")
             return None
         
 def normalize_args(args):

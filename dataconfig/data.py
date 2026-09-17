@@ -6,6 +6,7 @@ warnings.filterwarnings(
 )
 import pandas as pd
 from dataconfig.db_config import connect_db, load_env
+from dataconfig.mapping import logger
 
 #Nama Table PNS Backup    
 def get_table_name(bulan = None, tahun = None, schema = "dwstat"):
@@ -36,25 +37,37 @@ def get_all_data(conn, table_name, target_list, mode):
             nama = 'Nasional'
             cepat_kode = None
             kategori_list = kategori_nasional
+            logger.info(f"Proses pengambilan dan pengolahan data {nama}")
         elif mode == 'instansi':
             nama = target['nama']
             cepat_kode = target['cepat_kode']
             kategori_list = kategori_default
+            logger.info(f"Proses pengambilan dan pengolahan data {nama}")
         elif mode == 'all':
             nama = target['nama']
             cepat_kode = target['cepat_kode']
             instansi_id = target['id']
             kategori_list = kategori_default
+            logger.info(f"Proses pengambilan dan pengolahan data {nama}")
+        elif mode == 'allprovinsi':
+            nama = target['nama']
+            cepat_kode = target['nama']
+            instansi_id = target['id']
+            nama = f"Provinsi {nama.title()}"
+            kategori_list = kategori_default
+            logger.info(f"Proses pengambilan dan pengolahan data{nama}")
         elif mode == 'provinsi':
             wilayah = target['wilayah']
             cepat_kode = target['prefix']
             nama = f"Provinsi {wilayah.title()}"
             kategori_list = kategori_default
+            logger.info(f"Proses pengambilan dan pengolahan data {nama}")
         elif mode == 'kanreg':
             kanreg = target['nama']
             cepat_kode = target['id']
             nama = f"Wilker {kanreg}"
             kategori_list = kategori_default
+            logger.info(f"Proses pengambilan dan pengolahan data {nama}")
         else:
             raise ValueError("Mode harus 'instansi', 'provinsi', atau 'kanreg'")
         if mode == "all":
@@ -62,7 +75,7 @@ def get_all_data(conn, table_name, target_list, mode):
         else: 
             data[nama] = {}
         for kategori in kategori_list:
-            if mode == "all":
+            if mode in ("all","allprovinsi"):
                 data[nama]["kategori"][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)
             else : 
                 data[nama][kategori] = get_data(conn, cepat_kode, kategori, table_name, mode)
@@ -78,6 +91,8 @@ def get_data(conn, cepat_kode, kategori, table_name, mode):
         query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     elif mode == 'all':
         query = queries[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
+    elif mode == 'allprovinsi':
+        query = queries_provinsi[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     elif mode == 'provinsi':
         query = queries_provinsi[kategori].format(cepat_kode=cepat_kode, table_name=table_name)
     elif mode == 'kanreg':

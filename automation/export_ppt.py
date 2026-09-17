@@ -127,7 +127,7 @@ def isi_balok_pendidikan(df,slide,mode=""):
             #baris persentase
             run0 = tf.paragraphs[0].runs[0]
             font0 = run0.font
-            font0.size = Pt(18) if mode == "nasional" else Pt(23)
+            font0.size = Pt(18) if mode == "nasional" else Pt(20)
             font0.bold = True
             font0.name = "Open Sans Bold"
             if label in mapping_color_textbox:
@@ -137,7 +137,7 @@ def isi_balok_pendidikan(df,slide,mode=""):
             #baris count
             run1 = tf.paragraphs[1].runs[0]
             font1 = run1.font
-            font1.size = Pt(11.5) if mode == "nasional" else Pt(16)
+            font1.size = Pt(11.5) if mode == "nasional" else Pt(14)
             font1.name = "Open Sans Bold"
             font1.color.rgb = RGBColor(89,89,89)
             

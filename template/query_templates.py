@@ -9,8 +9,7 @@ from dataconfig.data import get_table_name
 #All Instansi
 def get_all_instansi(conn):
     query = """SELECT id, cepat_kode, nama
-                FROM ref.instansi WHERE status = 'A'
-                LIMIT 10"""
+                FROM ref.instansi WHERE status = 'A'"""
     df = pd.read_sql_query(query,conn)
     return df.to_dict(orient='records')
 
@@ -34,7 +33,7 @@ queries = {
     from {table_name} p
     where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by p.jenis_asn
     """,
@@ -43,7 +42,7 @@ queries = {
     from {table_name} p
     where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by p.jenis_kelamin""",
     "Pendidikan":
@@ -71,7 +70,7 @@ queries = {
     count(*) from {table_name} p
     join ref.instansi i on p.instansi_kerja_id = i.id
     where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by tingkatpendidikan 
     )a
@@ -81,7 +80,7 @@ queries = {
     f"""select p.kelompok_generasi  , count(*) from {table_name} p
     where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by p.kelompok_generasi""",
     "Jenis_Jabatan":
@@ -122,7 +121,7 @@ queries = {
     FROM {table_name} p
     where p.cepat_kode_instansi_kerja = '{{cepat_kode}}'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by jabatan,kelompok_jabatan
     """
@@ -130,13 +129,18 @@ queries = {
 
 #Provinsi
 def get_provinsi_prefix(conn, wilayah_name):
-    query = """SELECT left(cepat_kode,2) as prefix, nama 
-            FROM ref.instansi WHERE
-            nama ILIKE %s"""
+    query = """SELECT nama as prefix 
+            FROM ref.lokasi WHERE
+            nama ILIKE %s AND jenis = 'P'"""
     df = pd.read_sql_query(query, conn, params=[f"%{wilayah_name}%"])
     prefix_list = df['prefix'].tolist()
     #penambahan kolom wilayah
     return [{'prefix': p, 'wilayah': wilayah_name} for p in prefix_list]
+
+def get_all_provinsi(conn):
+    query = "SELECT id AS provinsi_id, nama FROM REF.lokasi WHERE jenis = 'P' AND kode_kemendagri IS NOT NULL"
+    df = pd.read_sql_query(query,conn)
+    return df.to_dict(orient='records')
 
 #Query Infografis provinsi
 table_name = get_table_name()
@@ -144,18 +148,18 @@ queries_provinsi = {
     "Jenis_ASN":
     f"""SELECT p.jenis_asn, count(*) 
     from {table_name} p
-    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    where p.lokasi_kerja_clean ilike '{{cepat_kode}}%'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by p.jenis_asn
     """,
     "Jenis_Kelamin":
     f"""select p.jenis_kelamin , count(*) 
     from {table_name} p
-    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    where p.lokasi_kerja_clean ilike '{{cepat_kode}}%'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by p.jenis_kelamin""",
     "Pendidikan":
@@ -182,8 +186,8 @@ queries_provinsi = {
         end as tingkatpendidikan, 
     count(*) from {table_name} p
     join ref.instansi i on p.instansi_kerja_id = i.id
-    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    where p.lokasi_kerja_clean ilike '{{cepat_kode}}%'
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by tingkatpendidikan 
     )a
@@ -191,9 +195,9 @@ queries_provinsi = {
     order by b.urutan""",
     "Kelompok_Generasi":
     f"""select p.kelompok_generasi  , count(*) from {table_name} p
-    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    where p.lokasi_kerja_clean ilike '{{cepat_kode}}%'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by p.kelompok_generasi""",
     "Jenis_Jabatan":
@@ -233,9 +237,9 @@ queries_provinsi = {
     COUNT(*)
     FROM
     {table_name} p
-    where p.cepat_kode_instansi_kerja ilike '{{cepat_kode}}%'
+    where p.lokasi_kerja_clean ilike '{{cepat_kode}}%'
     --and p.jenis_instansi_kerja = 'D' 
-    and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    --and (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
     and p.status_instansi_kerja = 'A'
     group by jabatan,kelompok_jabatan
     """
@@ -338,22 +342,22 @@ queries_kanreg = {
 queries_nasional = {
     "Jenis_ASN":
     f"""select p.jenis_asn, count(*) from {table_name} p 
-    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92')) 
+    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92','101')) 
     and p.status_instansi_kerja = 'A'
     GROUP BY p.jenis_asn""",
     "Jenis_Instansi":
     f"""select p.jenis_instansi_kerja as jenis_instansi, count(*) from {table_name} p
-    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92','101'))
     and p.status_instansi_kerja = 'A'
     GROUP BY p.jenis_instansi_kerja""",
     "Jenis_Kelamin":
     f"""select p.jenis_kelamin, count(*) from {table_name} p
-    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92','101'))
     and p.status_instansi_kerja = 'A'
     GROUP BY p.jenis_kelamin""",
     "Kelompok_Generasi":
     f"""select p.kelompok_generasi, count(*) from {table_name} p
-    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92','101'))
     and p.status_instansi_kerja = 'A'
     GROUP BY p.kelompok_generasi""",
     "Pendidikan":
@@ -380,7 +384,7 @@ queries_nasional = {
         end as tingkatpendidikan, 
     count(*) from {table_name} p
     join ref.instansi i on p.instansi_kerja_id = i.id
-    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    where (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92','101'))
     and p.status_instansi_kerja = 'A'
     group by tingkatpendidikan 
     )a
@@ -424,7 +428,7 @@ queries_nasional = {
     from {table_name} p
     left join ref.jabatan_fungsional jf on p.jabatan_fungsional_id = jf.id
     where
-    (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92'))
+    (p.kedudukan_hukum_id <= '51' or p.kedudukan_hukum_id in ('71','73','92','101'))
     and p.status_instansi_kerja = 'A'
     group by kelompok_jabatan, jabatan
     """

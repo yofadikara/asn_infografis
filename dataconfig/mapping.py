@@ -1,4 +1,5 @@
 from pptx.dml.color import RGBColor
+import logging
 
 #mappingan
 label_column_per_kategori = {
@@ -130,11 +131,11 @@ selid_kategori_shared = {
 
 #Mapping diagram instansi
 mapping_diagram_cm = {
-    "SD-SMA": {"x": 1.47, "y": 26, "width": 2.68, "color": RGBColor(231, 69, 123)},
-    "DI-DIII": {"x": 4.46, "y": 26, "width": 2.68, "color": RGBColor(231, 69, 123)},
-    "DIV/S1": {"x": 7.44, "y": 26, "width": 2.68, "color": RGBColor(231, 69, 123)},
-    "S2": {"x": 10.45, "y": 26, "width": 2.68, "color": RGBColor(231, 69, 123)},
-    "S3": {"x": 13.41, "y": 26, "width": 2.68, "color": RGBColor(231, 69, 123)}
+    "SD-SMA": {"x": 1.47, "y": 26, "width": 2.68, "color": RGBColor(3, 36, 82)},
+    "DI-DIII": {"x": 4.46, "y": 26, "width": 2.68, "color": RGBColor(3, 36, 82)},
+    "DIV/S1": {"x": 7.44, "y": 26, "width": 2.68, "color": RGBColor(3, 36, 82)},
+    "S2": {"x": 10.45, "y": 26, "width": 2.68, "color": RGBColor(3, 36, 82)},
+    "S3": {"x": 13.41, "y": 26, "width": 2.68, "color": RGBColor(3, 36, 82)}
 }
 
 #Mapping diagram Nasional
@@ -173,9 +174,8 @@ mapping_color_textbox = {
     "S3": RGBColor(89,89,89)
 }
 
-'''
 #Mapping Color Lama
-#Mapping diagram instansi
+'''#Mapping diagram instansi
 mapping_diagram_cm = {
     "SD-SMA": {"x": 1.47, "y": 26, "width": 2.68, "color": RGBColor(92, 157, 178)},
     "DI-DIII": {"x": 4.46, "y": 26, "width": 2.68, "color": RGBColor(65, 184, 213)},
@@ -227,6 +227,18 @@ bulan_map_id = {
     5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
     9: "September", 10: "Oktober", 11: "November", 12: "Desember"
 }
+
+#logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler("output/pipeline.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 #posisi table dinamis instansi
 '''TABLE_POSITIONS = {
